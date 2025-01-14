@@ -51,7 +51,7 @@ public class Main {
         frame.add(game);
         
         frame.pack();
-//        frame.setResizable(false);
+        frame.setResizable(false);
         frame.setVisible(true);
     }
     
