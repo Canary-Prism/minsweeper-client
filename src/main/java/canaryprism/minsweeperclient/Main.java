@@ -30,6 +30,8 @@ public class Main {
     
     private static MinsweeperGame game;
     
+    private static boolean auto;
+    
     public static void main(String[] args) {
         
         System.setProperty("apple.awt.application.name", "Minsweeper");
@@ -89,7 +91,8 @@ public class Main {
         var auto_checkbox = new JCheckBox("Auto Mode");
         auto_checkbox.setMnemonic(KeyEvent.VK_A);
         auto_checkbox.addItemListener((e) -> {
-            game.setAuto(e.getStateChange() == ItemEvent.SELECTED);
+            auto = (e.getStateChange() == ItemEvent.SELECTED);
+            game.setAuto(auto);
         });
         
         cheats_menu.add(auto_checkbox);
@@ -102,6 +105,7 @@ public class Main {
     private static void changeGame(BoardSize size) {
         frame.remove(game);
         game = new MinsweeperGame(size);
+        game.setAuto(auto);
         frame.add(game);
         frame.pack();
     }
