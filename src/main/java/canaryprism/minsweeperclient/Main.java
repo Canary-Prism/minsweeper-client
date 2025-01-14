@@ -35,7 +35,7 @@ public class Main {
     public static void main(String[] args) {
         
         System.setProperty("apple.awt.application.name", "Minsweeper");
-//        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
         
         
         frame = new JFrame();
@@ -88,8 +88,9 @@ public class Main {
         var cheats_menu = new JMenu("Cheats");
         cheats_menu.setMnemonic(KeyEvent.VK_C);
         
-        var auto_checkbox = new JCheckBox("Auto Mode");
+        var auto_checkbox = new JCheckBoxMenuItem("Auto Mode");
         auto_checkbox.setMnemonic(KeyEvent.VK_A);
+        auto_checkbox.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, KeyEvent.ALT_DOWN_MASK));
         auto_checkbox.addItemListener((e) -> {
             auto = (e.getStateChange() == ItemEvent.SELECTED);
             game.setAuto(auto);
