@@ -29,6 +29,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static java.lang.Math.max;
@@ -329,6 +331,7 @@ public class MinsweeperGame extends JComponent {
     
     class BoardView extends JComponent {
         
+        private static final Map<String, BufferedImage> image_map = new HashMap<>();
         
         BoardView() {
             this.setLayout(new GridLayout(size.height(), size.width()));
@@ -365,22 +368,23 @@ public class MinsweeperGame extends JComponent {
                             
                             if (!file_name.equals(last_file_name)) {
                                 
-                                
-                                var url = Objects.requireNonNull(BoardView.class.getResource("/minsweeper/cell/" + file_name + ".svg")).toString();
-                                
-                                BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
-                                
-                                transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, ((float) this.getWidth() * 10));
-                                transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, ((float) this.getHeight() * 10));
-                                
-                                TranscoderInput input = new TranscoderInput(url);
-                                try {
-                                    transcoder.transcode(input, null);
-                                } catch (TranscoderException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                
-                                image = transcoder.getBufferedImage();
+                                image = image_map.computeIfAbsent(file_name, (_) -> {
+                                    var url = Objects.requireNonNull(BoardView.class.getResource("/minsweeper/cell/" + file_name + ".svg")).toString();
+                                    
+                                    BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
+                                    
+                                    transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, ((float) this.getWidth() * 10));
+                                    transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, ((float) this.getHeight() * 10));
+                                    
+                                    TranscoderInput input = new TranscoderInput(url);
+                                    try {
+                                        transcoder.transcode(input, null);
+                                    } catch (TranscoderException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    
+                                    return transcoder.getBufferedImage();
+                                });
 
 //                            g.drawString(switch (cell) {
 //                                case Cell.Revealed(var number) when number == 0 -> "";

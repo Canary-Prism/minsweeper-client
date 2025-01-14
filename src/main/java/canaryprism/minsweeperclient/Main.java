@@ -22,6 +22,7 @@ import canaryprism.minsweeperclient.swing.MinsweeperGame;
 
 import javax.swing.*;
 import java.awt.event.ItemEvent;
+import java.awt.event.KeyEvent;
 
 public class Main {
     
@@ -56,18 +57,25 @@ public class Main {
         var menu_bar = new JMenuBar();
         
         var size_menu = new JMenu("Size");
+        size_menu.setMnemonic(KeyEvent.VK_S);
         
         var beginner_size = size_menu.add("Beginner");
+        beginner_size.setMnemonic(KeyEvent.VK_B);
+        beginner_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, KeyEvent.ALT_DOWN_MASK));
         beginner_size.addActionListener((e) -> {
             changeGame(ConventionalSize.BEGINNER.size);
         });
         
         var intermediate_size = size_menu.add("Intermediate");
+        intermediate_size.setMnemonic(KeyEvent.VK_I);
+        intermediate_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, KeyEvent.ALT_DOWN_MASK));
         intermediate_size.addActionListener((e) -> {
             changeGame(ConventionalSize.INTERMEDIATE.size);
         });
         
         var expert_size = size_menu.add("Expert");
+        expert_size.setMnemonic(KeyEvent.VK_E);
+        expert_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.ALT_DOWN_MASK));
         expert_size.addActionListener((e) -> {
             changeGame(ConventionalSize.EXPERT.size);
         });
@@ -76,8 +84,10 @@ public class Main {
         menu_bar.add(size_menu);
         
         var cheats_menu = new JMenu("Cheats");
+        cheats_menu.setMnemonic(KeyEvent.VK_C);
         
         var auto_checkbox = new JCheckBox("Auto Mode");
+        auto_checkbox.setMnemonic(KeyEvent.VK_A);
         auto_checkbox.addItemListener((e) -> {
             game.setAuto(e.getStateChange() == ItemEvent.SELECTED);
         });
