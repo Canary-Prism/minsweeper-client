@@ -21,8 +21,11 @@ import canaryprism.minsweeper.ConventionalSize;
 import canaryprism.minsweeperclient.swing.MinsweeperGame;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
+import java.util.concurrent.CompletableFuture;
 
 public class Main {
     
@@ -82,6 +85,11 @@ public class Main {
             changeGame(ConventionalSize.EXPERT.size);
         });
         
+        var custom_size = size_menu.add("Custom");
+        custom_size.setMnemonic(KeyEvent.VK_C);
+        custom_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.ALT_DOWN_MASK));
+        custom_size.addActionListener((_) -> Thread.ofVirtual().start(() -> changeGame(promptBoardSize())));
+        
         
         menu_bar.add(size_menu);
         
@@ -109,5 +117,96 @@ public class Main {
         game.setAuto(auto);
         frame.add(game);
         frame.pack();
+    }
+    
+    
+    
+    private static BoardSize promptBoardSize() {
+        
+        class SizeDialig {
+            static JDialog dialog;
+            
+            static CompletableFuture<BoardSize> future;
+            
+            static {
+                dialog = new JDialog(frame);
+                
+                var panel = new JPanel();
+                
+                dialog.setContentPane(panel);
+                
+                panel.setLayout(new GridBagLayout());
+                
+                var constraints = new GridBagConstraints();
+                
+                constraints.gridheight = 1;
+                
+                constraints.anchor = GridBagConstraints.EAST;
+                
+                var width_label = new JLabel("Width: ");
+                var width_spinner = new JSpinner(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
+                
+                constraints.gridx = 0;
+                constraints.gridwidth = 1;
+                panel.add(width_label, constraints);
+                constraints.gridx = 1;
+                constraints.gridwidth = 2;
+                panel.add(width_spinner, constraints);
+                
+                var height_label = new JLabel("Height: ");
+                var height_spinner = new JSpinner(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
+                
+                constraints.gridx = 0;
+                constraints.gridwidth = 1;
+                panel.add(height_label, constraints);
+                constraints.gridx = 1;
+                constraints.gridwidth = 2;
+                panel.add(height_spinner, constraints);
+                
+                var mines_label = new JLabel("Mines: ");
+                var mines_spinner = new JSpinner(new SpinnerNumberModel(10, 1, Integer.MAX_VALUE, 1));
+                
+                constraints.gridx = 0;
+                constraints.gridwidth = 1;
+                panel.add(mines_label, constraints);
+                constraints.gridx = 1;
+                constraints.gridwidth = 2;
+                panel.add(mines_spinner, constraints);
+                
+                var done_button = new JButton("Done");
+                
+                constraints.gridx = 2;
+                constraints.gridwidth = 1;
+                constraints.anchor = GridBagConstraints.EAST;
+                panel.add(done_button, constraints);
+                
+                panel.setBorder(new EmptyBorder(5, 5, 5, 5));
+                
+                future = new CompletableFuture<BoardSize>();
+                
+                done_button.addActionListener((_) -> {
+                    try {
+                        var size = new BoardSize(
+                                ((int) width_spinner.getValue()),
+                                ((int) height_spinner.getValue()),
+                                ((int) mines_spinner.getValue())
+                        );
+                        
+                        future.complete(size);
+                        dialog.setVisible(false);
+                    } catch (IllegalArgumentException e) {
+                        JOptionPane.showMessageDialog(dialog, e.getMessage(), "Invalid Size", JOptionPane.ERROR_MESSAGE);
+                    }
+                });
+                
+                dialog.pack();
+                dialog.setResizable(false);
+            }
+        }
+        
+        SizeDialig.future = new CompletableFuture<>();
+        SizeDialig.dialog.setVisible(true);
+        
+        return SizeDialig.future.join();
     }
 }
