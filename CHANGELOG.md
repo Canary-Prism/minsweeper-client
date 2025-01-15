@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.1.1
+- added neighbour highlighting
+
 ## v0.1.0
 - added mnemonics and accelerators to the menu items
 - fixed auto mode resetting when changing size
