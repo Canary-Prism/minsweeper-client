@@ -52,7 +52,7 @@ public class MinsweeperGame extends JComponent {
         
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         
-        var start_button = new JButton();
+        var start_button = new JButton("Restart");
         start_button.addActionListener((_) -> start());
         
         this.add(start_button);
