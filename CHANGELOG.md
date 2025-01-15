@@ -6,6 +6,7 @@
 - changed Auto Mode checkbox to use the proper type of checkbox
 - added custom size support
 - gave the restart button a name
+- cached IO reads improving performance significantly
 
 ## v0.0.1
 - mewo
