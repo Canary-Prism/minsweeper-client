@@ -405,6 +405,8 @@ public class MinsweeperGame extends JComponent {
                     };
                     
 //                    component.setModel(new DefaultButtonModel());
+                    component.setFocusable(false);
+                    component.setBorderPainted(false);
                     
                     component.setLayout(new BorderLayout());
                     
