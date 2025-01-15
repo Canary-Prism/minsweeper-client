@@ -331,6 +331,10 @@ public class MinsweeperGame extends JComponent {
     
     class BoardView extends JComponent {
         
+        record Point(int x, int y) {}
+        
+        private static final Map<Point, CellView> cells = new HashMap<>();
+        
         private static final Map<String, BufferedImage> image_map = new HashMap<>();
         
         BoardView() {
@@ -339,79 +343,26 @@ public class MinsweeperGame extends JComponent {
             
             for (int y = 0; y < size.height(); y++)
                 for (int x = 0; x < size.width(); x++) {
-                    int final_x = x;
-                    int final_y = y;
+                    var point = new Point(x, y);
                     
-                    var component = new JButton() {
-                        private BufferedImage image;
-                        private String last_file_name = "";
-                        @Override
-                        protected void paintComponent(Graphics g1) {
-                            var g = ((Graphics2D) g1);
-                            var cell = state.board().get(final_x, final_y);
-                            
-                            var file_name = switch (cell) {
-                                case Cell.Revealed(var number) when number == 0 -> "celldown";
-                                case Cell.Revealed(var number) -> "cell" + number;
-                                case Cell.Unknown _ -> {
-//                                    System.out.println("unknown cell repaint with armed: " + getModel().isArmed());
-                                    if (getModel().isArmed())
-                                        yield "celldown";
-                                    else
-                                        yield "cellup";
-                                }
-                                case Cell.MarkedMine _ -> "cellflag";
-                                case Cell.Mine _ -> "cellmine";
-                                case Cell.FalseMine _ -> "falsemine";
-                                case Cell.ExplodedMine _ -> "blast";
-                            };
-                            
-                            if (!file_name.equals(last_file_name)) {
-                                
-                                image = image_map.computeIfAbsent(file_name, (_) -> {
-                                    var url = Objects.requireNonNull(BoardView.class.getResource("/minsweeper/cell/" + file_name + ".svg")).toString();
-                                    
-                                    BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
-                                    
-                                    transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, ((float) this.getWidth() * 10));
-                                    transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, ((float) this.getHeight() * 10));
-                                    
-                                    TranscoderInput input = new TranscoderInput(url);
-                                    try {
-                                        transcoder.transcode(input, null);
-                                    } catch (TranscoderException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                    
-                                    return transcoder.getBufferedImage();
-                                });
-
-//                            g.drawString(switch (cell) {
-//                                case Cell.Revealed(var number) when number == 0 -> "";
-//                                case Cell.Revealed(var number) -> String.valueOf(number);
-//                                case Cell.Unknown _ -> "▩";
-//                                case Cell.MarkedMine _ -> "!";
-//                                case Cell.Mine _ -> "*";
-//                                case Cell.FalseMine _ -> "Ø";
-//                                case Cell.ExplodedMine _ -> "X";
-//                            }, 0, 30);
-                                
-                                last_file_name = file_name;
-                            }
-                            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-                            g.drawImage(image, 0, 0, this.getWidth(), this.getHeight(), null);
-                        }
-                    };
+                    var component = new CellView(point);
                     
 //                    component.setModel(new DefaultButtonModel());
-                    component.setFocusable(false);
-                    component.setBorderPainted(false);
-                    
-                    component.setLayout(new BorderLayout());
+
+                    component.addChangeListener((_) -> {
+                        if (state.board().get(point.x, point.y) instanceof Cell.Revealed) {
+                            for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
+                                for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
+                                    if (state.board().get(x3, y3) instanceof Cell.Unknown || !component.getModel().isArmed()) {
+                                        cells.get(new Point(x3, y3)).getModel().setArmed(component.getModel().isArmed());
+                                    }
+                                }
+                            }
+                        }
+                    });
                     
                     component.addActionListener((e) -> {
-                        state = minsweeper.leftClick(final_x, final_y);
+                        state = minsweeper.leftClick(point.x, point.y);
                         BoardView.this.repaint();
                         Thread.ofVirtual().start(MinsweeperGame.this::auto);
                     });
@@ -422,18 +373,91 @@ public class MinsweeperGame extends JComponent {
                         public void mousePressed(MouseEvent e) {
                             
                             if (SwingUtilities.isRightMouseButton(e)) {
-                                state = minsweeper.rightClick(final_x, final_y);
+                                state = minsweeper.rightClick(point.x, point.y);
                                 BoardView.this.repaint();
                                 Thread.ofVirtual().start(MinsweeperGame.this::auto);
                             }
                         }
                     });
                     
-                    component.setPreferredSize(new Dimension(30, 30));
 //                    component.setBorder(new LineBorder(Color.BLACK));
                     
                     this.add(component);
+                    cells.put(point, component);
                 }
+        }
+        
+        
+        class CellView extends JButton {
+            private final Point point;
+            private BufferedImage image;
+            private String last_file_name = "";
+            
+            CellView(Point point) {
+                this.point = point;
+                
+                this.setFocusable(false);
+                this.setBorderPainted(false);
+                this.setPreferredSize(new Dimension(30, 30));
+            }
+            
+            @Override
+            protected void paintComponent(Graphics g1) {
+                var g = ((Graphics2D) g1);
+                var cell = state.board().get(point.x, point.y);
+                
+                var file_name = switch (cell) {
+                    case Cell.Revealed(var number) when number == 0 -> "celldown";
+                    case Cell.Revealed(var number) -> "cell" + number;
+                    case Cell.Unknown _ -> {
+//                                    System.out.println("unknown cell repaint with armed: " + getModel().isArmed());
+                        if (getModel().isArmed())
+                            yield "celldown";
+                        else
+                            yield "cellup";
+                    }
+                    case Cell.MarkedMine _ -> "cellflag";
+                    case Cell.Mine _ -> "cellmine";
+                    case Cell.FalseMine _ -> "falsemine";
+                    case Cell.ExplodedMine _ -> "blast";
+                };
+                
+                if (!file_name.equals(last_file_name)) {
+                    
+                    image = image_map.computeIfAbsent(file_name, (_) -> {
+                        var url = Objects.requireNonNull(BoardView.class.getResource("/minsweeper/cell/" + file_name + ".svg")).toString();
+                        
+                        BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
+                        
+                        transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, ((float) this.getWidth() * 10));
+                        transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, ((float) this.getHeight() * 10));
+                        
+                        TranscoderInput input = new TranscoderInput(url);
+                        try {
+                            transcoder.transcode(input, null);
+                        } catch (TranscoderException e) {
+                            throw new RuntimeException(e);
+                        }
+                        
+                        return transcoder.getBufferedImage();
+                    });
+
+//                            g.drawString(switch (cell) {
+//                                case Cell.Revealed(var number) when number == 0 -> "";
+//                                case Cell.Revealed(var number) -> String.valueOf(number);
+//                                case Cell.Unknown _ -> "▩";
+//                                case Cell.MarkedMine _ -> "!";
+//                                case Cell.Mine _ -> "*";
+//                                case Cell.FalseMine _ -> "Ø";
+//                                case Cell.ExplodedMine _ -> "X";
+//                            }, 0, 30);
+                    
+                    last_file_name = file_name;
+                }
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                g.drawImage(image, 0, 0, this.getWidth(), this.getHeight(), null);
+            }
         }
     }
     static class BufferedImageTranscoder extends ImageTranscoder {
