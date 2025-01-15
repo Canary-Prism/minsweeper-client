@@ -34,6 +34,7 @@ public class Main {
     private static MinsweeperGame game;
     
     private static boolean auto;
+    private static BoardSize size;
     
     public static void main(String[] args) {
         
@@ -68,27 +69,33 @@ public class Main {
         beginner_size.setMnemonic(KeyEvent.VK_B);
         beginner_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, KeyEvent.ALT_DOWN_MASK));
         beginner_size.addActionListener((e) -> {
-            changeGame(ConventionalSize.BEGINNER.size);
+            size = ConventionalSize.BEGINNER.size;
+            changeGame();
         });
         
         var intermediate_size = size_menu.add("Intermediate");
         intermediate_size.setMnemonic(KeyEvent.VK_I);
         intermediate_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, KeyEvent.ALT_DOWN_MASK));
         intermediate_size.addActionListener((e) -> {
-            changeGame(ConventionalSize.INTERMEDIATE.size);
+            size = ConventionalSize.INTERMEDIATE.size;
+            changeGame();
         });
         
         var expert_size = size_menu.add("Expert");
         expert_size.setMnemonic(KeyEvent.VK_E);
         expert_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.ALT_DOWN_MASK));
         expert_size.addActionListener((e) -> {
-            changeGame(ConventionalSize.EXPERT.size);
+            size = ConventionalSize.EXPERT.size;
+            changeGame();
         });
         
         var custom_size = size_menu.add("Custom");
         custom_size.setMnemonic(KeyEvent.VK_C);
         custom_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.ALT_DOWN_MASK));
-        custom_size.addActionListener((_) -> Thread.ofVirtual().start(() -> changeGame(promptBoardSize())));
+        custom_size.addActionListener((_) -> Thread.ofVirtual().start(() -> {
+            size = promptBoardSize();
+            changeGame();
+        }));
         
         
         menu_bar.add(size_menu);
@@ -111,7 +118,7 @@ public class Main {
         return menu_bar;
     }
     
-    private static void changeGame(BoardSize size) {
+    private static void changeGame() {
         frame.remove(game);
         game = new MinsweeperGame(size);
         game.setAuto(auto);
