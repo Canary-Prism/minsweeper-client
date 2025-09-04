@@ -1,0 +1,69 @@
+// version 1.0.0
+
+import java.util.jar.JarFile
+import java.util.stream.Collectors
+
+static Boolean isModular(File file) {
+    return new JarFile(file).getEntry("module-info.class") != null
+}
+
+def modular = application.mainModule.present && configurations.runtimeClasspath
+    .files
+    .stream()
+    .allMatch { isModular(it) }
+
+tasks.register("gatherJars", Copy) {
+    notCompatibleWithConfigurationCache("i don't really know")
+    dependsOn(tasks.jar)
+    if (modular) {
+        from(configurations.runtimeClasspath, tasks.jar.archiveFile)
+        into("build/release")
+    } else {
+        from(configurations.runtimeClasspath, tasks.jar.archiveFile)
+        into("build/release/input")
+    }
+}
+
+tasks.register("writeJPackageArgs") {
+    notCompatibleWithConfigurationCache("i don't really know")
+    dependsOn(tasks.jar)
+    doLast {
+        def jars = configurations.runtimeClasspath.files + (tasks.jar.archiveFile.get().asFile)
+        def file = file("build/release/args")
+        file.write("""
+            -n "${project.name}"
+            --app-version "${project.version}"
+            --description "${project.description}"
+            ${if (modular) {
+                """
+                    -p "${jars.stream().filter { isModular(it) }.map { it.name }
+                .collect(Collectors.joining(File.pathSeparator))}"
+                    -m "${application.mainModule.get()}/${application.mainClass.get()}"
+                """.stripIndent()
+            } else {
+                """
+                    -i "input"
+                    --main-jar ${tasks.jar.archiveFileName.get()}
+                    --main-class ${application.mainClass.get()}
+                    
+                """.stripIndent()
+        }}
+        """.stripIndent())
+    }
+}
+
+tasks.register("writeInfo") {
+    notCompatibleWithConfigurationCache("i don't really know")
+    doLast {
+        def file = file("build/release/info.env")
+        file.write("""
+            NAME=${project.name}
+            VERSION=${project.version}
+        """.stripIndent())
+    }
+}
+
+tasks.register("release") {
+    notCompatibleWithConfigurationCache("i don't really know")
+    dependsOn(tasks.named("gatherJars"), tasks.named("writeJPackageArgs"), tasks.named("writeInfo"))
+}
