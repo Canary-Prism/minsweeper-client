@@ -18,6 +18,7 @@ package canaryprism.minsweeperclient;
 
 import canaryprism.minsweeper.BoardSize;
 import canaryprism.minsweeper.ConventionalSize;
+import canaryprism.minsweeper.solver.Solver;
 import canaryprism.minsweeperclient.swing.MinsweeperGame;
 
 import javax.swing.*;
@@ -25,6 +26,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
+import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 
 public class Main {
@@ -34,7 +36,8 @@ public class Main {
     private static MinsweeperGame game;
     
     private static boolean auto;
-    private static BoardSize size;
+    private static BoardSize size = ConventionalSize.BEGINNER.size;
+    private static Solver solver = Solver.getDefault();
     
     public static void main(String[] args) {
         
@@ -50,7 +53,7 @@ public class Main {
         
         frame.setJMenuBar(menu_bar);
         
-        game = new MinsweeperGame(ConventionalSize.BEGINNER.size);
+        game = new MinsweeperGame(ConventionalSize.BEGINNER.size, Solver.getDefault());
         
         frame.add(game);
         
@@ -100,6 +103,27 @@ public class Main {
         
         menu_bar.add(size_menu);
         
+        var solver_menu = new JMenu("Solver");
+        solver_menu.setMnemonic(KeyEvent.VK_S);
+        var solver_loader = ServiceLoader.load(Solver.class);
+        var solver_button_group = new ButtonGroup();
+        for (var solver : solver_loader) {
+            var button = new JRadioButtonMenuItem(solver.getClass().getName());
+            if (Solver.getDefault().getClass() == solver.getClass())
+                button.setSelected(true);
+            button.addItemListener((e) -> {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    Main.solver = solver;
+                    changeGame();
+                }
+            });
+            solver_button_group.add(button);
+            solver_menu.add(button);
+        }
+        
+        menu_bar.add(solver_menu);
+        
+        
         var cheats_menu = new JMenu("Cheats");
         cheats_menu.setMnemonic(KeyEvent.VK_C);
         
@@ -120,7 +144,7 @@ public class Main {
     
     private static void changeGame() {
         frame.remove(game);
-        game = new MinsweeperGame(size);
+        game = new MinsweeperGame(size, solver);
         game.setAuto(auto);
         frame.add(game);
         frame.pack();

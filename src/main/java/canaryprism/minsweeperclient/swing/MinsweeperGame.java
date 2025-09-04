@@ -17,6 +17,8 @@
 package canaryprism.minsweeperclient.swing;
 
 import canaryprism.minsweeper.*;
+import canaryprism.minsweeper.solver.Move;
+import canaryprism.minsweeper.solver.Solver;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
@@ -24,14 +26,16 @@ import org.apache.batik.transcoder.image.ImageTranscoder;
 import org.apache.batik.transcoder.image.PNGTranscoder;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -39,293 +43,105 @@ import static java.lang.Math.min;
 public class MinsweeperGame extends JComponent {
     
     private final BoardSize size;
+    private final Solver solver;
     
     private final Minsweeper minsweeper;
     
     private volatile GameState state;
     
+    private final JLabel status_label, remaining_mines_label;
+    
     private boolean auto = false;
     
-    public MinsweeperGame(BoardSize size) {
+    public MinsweeperGame(BoardSize size, Solver solver) {
         this.size = size;
+        this.solver = solver;
         this.minsweeper = new Minsweeper(size);
         
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         
+        var menu = new JPanel(new BorderLayout());
+        menu.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        this.status_label = new JLabel("Status: Not Playing");
+        menu.add(status_label, BorderLayout.WEST);
+        
+        var start_panel = new JPanel();
+        start_panel.setLayout(new BoxLayout(start_panel, BoxLayout.X_AXIS));
+        
+        start_panel.add(Box.createHorizontalGlue());
+        
         var start_button = new JButton("Restart");
         start_button.addActionListener((_) -> start());
+        start_panel.add(start_button);
         
-        this.add(start_button);
+        start_panel.add(Box.createHorizontalGlue());
         
-        this.state = minsweeper.start();
+        menu.add(start_panel, BorderLayout.CENTER);
+        
+        
+        this.remaining_mines_label = new JLabel("Mines: " + size.mines());
+        
+        menu.add(remaining_mines_label, BorderLayout.EAST);
+        
+        
+        this.add(menu);
+        
+        this.state = minsweeper.start(Solver.getDefault());
         
         this.add(new BoardView());
     }
     
     private void start() {
-        state = minsweeper.start();
-        this.repaint();
+        state = minsweeper.start(Solver.getDefault());
+        this.revalidate();
     }
     
     public void setAuto(boolean auto) {
         this.auto = auto;
     }
-    
+    private final ForkJoinPool pool = new ForkJoinPool(1);
     private void auto() {
         if (!auto) {
             return;
         }
-        
-        class Performed {
-            static volatile boolean performed = true;
-        }
-        
-        Performed.performed = true;
-        
-        while (Performed.performed && state.status() == GameStatus.PLAYING) {
-            Performed.performed = false;
-            for (int y2 = 0; y2 < size.height(); y2++) {
-                for (int x2 = 0; x2 < size.width(); x2++) {
-                    
-                    if (!(state.board().get(x2, y2) instanceof Cell.Revealed(var number)))
-                        continue;
-                    
-                    var marked_mines = 0;
-                    var empty_spaces = 0;
-                    
-                    for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                        for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                            if (state.board().get(x3, y3) instanceof Cell.MarkedMine) {
-                                marked_mines++;
-                                empty_spaces++;
-                            } else if (state.board().get(x3, y3) instanceof Cell.Unknown) {
-                                empty_spaces++;
-                            }
+        pool.submit(ForkJoinTask.adapt(() -> {
+            while (state.status() == GameStatus.PLAYING) {
+                var move = Solver.getDefault().solve(state);
+                synchronized (this) {
+                    if (move instanceof Move(Move.Point(var x, var y), var action)) {
+                        switch (action) {
+                            case LEFT -> this.state = minsweeper.leftClick(x, y);
+                            case RIGHT -> this.state = minsweeper.rightClick(x, y);
                         }
-                    }
-                    
-                    if (number == marked_mines && empty_spaces > marked_mines) {
-//                            try? await Task.sleep(nanoseconds: 50_000_000)
-                        state = minsweeper.leftClick(x2, y2);
-                        repaint();
+                        revalidate();
                         try {
-                            Thread.sleep(3);
+                            Thread.sleep(10);
                         } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
                         }
-                        Performed.performed = true;
-                    } else if (number == empty_spaces) {
-                        for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                            for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                                if (state.board().get(x3, y3) instanceof Cell.Unknown) {
-                                    state = minsweeper.rightClick(x3, y3);
-                                    repaint();
-                                    try {
-                                        Thread.sleep(3);
-                                    } catch (InterruptedException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                    Performed.performed = true;
-                                }
-                            }
-                        }
-                    } else if (number < marked_mines) {
-                        for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                            for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                                if (state.board().get(x3, y3) instanceof Cell.MarkedMine) {
-                                    state = minsweeper.rightClick(x3, y3);
-                                    repaint();
-                                    try {
-                                        Thread.sleep(3);
-                                    } catch (InterruptedException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                    Performed.performed = true;
-                                }
-                            }
-                        }
-                    }
-                    
-                    
+                    } else break;
                 }
             }
-            
-            //logical deduction time :c
-            if (!Performed.performed) {
-                record Point(int x, int y) {}
-                
-                class Logic {
-                    
-                    void logic(int x2, int y2, int de, ArrayList<Point> grid) {
-                        if (!(state.board().get(x2, y2) instanceof Cell.Revealed(var this_num)))
-                            return;
-                        
-                        var index = 0;
-                        var claimed_surroundings = new ArrayList<Integer>();
-                        for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                            for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                                if (x3 == x2 && y3 == y2) {
-                                    index += 1;
-                                    continue;
-                                }
-                                for (var item : grid) {
-                                    if (item.x == x3 && item.y == y3) {
-                                        claimed_surroundings.add(index);
-                                    }
-                                }
-                                index += 1;
-                            }
-                        }
-                        var strong_match = claimed_surroundings.size() == grid.size();
-                        var flagged = 0;
-                        var empty = 0;
-                        index = 0;
-                        for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                            for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                                if (x3 == x2 && y3 == y2) {
-                                    index += 1;
-                                    continue;
-                                }
-                                if (claimed_surroundings.contains(index)) {
-                                    index += 1;
-                                    continue;
-                                }
-                                switch (state.board().get(x3, y3)) {
-                                    case Cell.MarkedMine _ -> flagged++;
-                                    case Cell.Unknown _ -> empty++;
-                                    default -> {
-                                    }
-                                }
-                                index++;
-                            }
-                        }
-                        
-                        if (strong_match && flagged + de == this_num && empty > 0) {
-                            index = 0;
-                            for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                                for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                                    if (x3 == x2 && y3 == y2) {
-                                        index++;
-                                        continue;
-                                    }
-                                    if (claimed_surroundings.contains(index)) {
-                                        index++;
-                                        continue;
-                                    }
-                                    if (state.board().get(x3, y3) instanceof Cell.Unknown) {
-//                                        try? await Task.sleep(nanoseconds: 50_000_000)
-                                        state = minsweeper.leftClick(x3, y3);
-                                        repaint();
-                                        try {
-                                            Thread.sleep(3);
-                                        } catch (InterruptedException e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                        Performed.performed = true;
-                                    }
-                                    index += 1;
-                                }
-                            }
-                        } else if (flagged + de + empty == this_num) {
-                            index = 0;
-                            for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                                for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                                    if (x3 == x2 && y3 == y2) {
-                                        index += 1;
-                                        continue;
-                                    }
-                                    if (claimed_surroundings.contains(index)) {
-                                        index += 1;
-                                        continue;
-                                    }
-                                    if (state.board().get(x3, y3) instanceof Cell.Unknown) {
-                                        state = minsweeper.rightClick(x3, y3);
-                                        repaint();
-                                        try {
-                                            Thread.sleep(3);
-                                        } catch (InterruptedException e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                        Performed.performed = true;
-                                    }
-                                    index += 1;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                var logic = new Logic();
-                
-                for (int y2 = 0; y2 < size.height(); y2++) {
-                    for (int x2 = 0; x2 < size.width(); x2++) {
-                        if (state.board().get(x2, y2) instanceof Cell.Revealed(var this_num)) {
-                            if (this_num <= 0)
-                                continue;
-                            
-                            var flagged = 0;
-                            var empty = 0;
-                            var grid = new ArrayList<Point>();
-                            
-                            for (int y3 = max(0, y2 - 1); y3 <= min(size.height() - 1, y2 + 1); y3++) {
-                                for (int x3 = max(0, x2 - 1); x3 <= min(size.width() - 1, x2 + 1); x3++) {
-                                    if (state.board().get(x3, y3) instanceof Cell.MarkedMine) {
-                                        flagged += 1;
-                                    } else if (state.board().get(x3, y3) instanceof Cell.Unknown) {
-                                        grid.add(new Point(x3, y3));
-                                        empty += 1;
-                                    }
-                                }
-                            }
-                            if (!(flagged < this_num && empty > 0))
-                                continue;
-                            
-                            final var de = this_num - flagged;
-                            
-                            
-                            for (int y3 = max(0, y2 - 2); y3 <= min(size.height() - 1, y2 + 2); y3++) {
-                                for (int x3 = max(0, x2 - 2); x3 <= min(size.width() - 1, x2 + 2); x3++) {
-                                    if (state.board().get(x3, y3) instanceof Cell.Revealed) {
-                                        logic.logic(x3, y3, de, grid);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            
-            if (Performed.performed) {
-                // try? await Task.sleep(nanoseconds: 100_000_000)
-
-                Thread.ofVirtual().start(this::auto);
-                try {
-                    Thread.sleep(3);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                Performed.performed = false;
-            }
-        }
+        }));
         
+    }
+    
+    @Override
+    public void doLayout() {
+        super.doLayout();
         
-        if (state.remainingMines() == 0) {
-            for (int y2 = 0; y2 < size.height(); y2++) {
-                for (int x2 = 0; x2 < size.width(); x2++) {
-                    if (state.board().get(x2, y2) instanceof Cell.Unknown) {
-                        state = minsweeper.leftClick(x2, y2);
-                        repaint();
-                        try {
-                            Thread.sleep(3);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            }
-        }
+        var status_str = switch (state.status()) {
+            case PLAYING -> "Playing";
+            case NEVER -> "Not Playing";
+            case LOST -> "Lost";
+            case WON -> "Won";
+        };
+        status_label.setText("Status: " + status_str);
         
+        if (state.status() == GameStatus.WON)
+            remaining_mines_label.setText("Mines: 0");
+        else
+            remaining_mines_label.setText("Mines: " + state.remainingMines());
         repaint();
     }
     
@@ -363,7 +179,7 @@ public class MinsweeperGame extends JComponent {
                     
                     component.addActionListener((e) -> {
                         state = minsweeper.leftClick(point.x, point.y);
-                        BoardView.this.repaint();
+                        BoardView.this.revalidate();
                         Thread.ofVirtual().start(MinsweeperGame.this::auto);
                     });
                     
@@ -374,7 +190,7 @@ public class MinsweeperGame extends JComponent {
                             
                             if (SwingUtilities.isRightMouseButton(e)) {
                                 state = minsweeper.rightClick(point.x, point.y);
-                                BoardView.this.repaint();
+                                BoardView.this.revalidate();
                                 Thread.ofVirtual().start(MinsweeperGame.this::auto);
                             }
                         }
@@ -387,6 +203,10 @@ public class MinsweeperGame extends JComponent {
                 }
         }
         
+        @Override
+        public Dimension getMaximumSize() {
+            return getPreferredSize();
+        }
         
         class CellView extends JButton {
             private final Point point;
