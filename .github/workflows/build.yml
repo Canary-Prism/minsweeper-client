@@ -1,0 +1,294 @@
+name: "JPackage Build"
+run-name: "JPackage Build for ${{ github.event.release.tag_name }}"
+
+on:
+  release:
+    types: [ published ]
+env:
+  JAVA_VERSION: "22"
+  ICON_PATH: ""
+jobs:
+  build_mac_arm64:
+    name: "JPackage Build for Mac arm64"
+    runs-on: "macos-latest"
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v5"
+      - name: "Set up Java"
+        uses: "actions/setup-java@v5"
+        with:
+          java-version: "${{ env.JAVA_VERSION }}"
+          distribution: "temurin"
+      - name: "Setup Gradle"
+        uses: "gradle/actions/setup-gradle@v4"
+      - name: "Build Java"
+        shell: "bash"
+        run: |
+          ./gradlew jar
+          ./gradlew release
+      - name: "Process Icon"
+        if: "env.ICON_PATH != ''"
+        run: |
+          mkdir build/release/icon
+          cp $ICON_PATH build/release/icon/icon
+          cd build/release/icon
+          mkdir icon.iconset
+          sips -z 16 16     icon --out icon.iconset/icon_16x16.png
+          sips -z 32 32     icon --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     icon --out icon.iconset/icon_32x32.png
+          sips -z 64 64     icon --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   icon --out icon.iconset/icon_128x128.png
+          sips -z 256 256   icon --out icon.iconset/icon_128x128@2x.png
+          sips -z 256 256   icon --out icon.iconset/icon_256x256.png
+          sips -z 512 512   icon --out icon.iconset/icon_256x256@2x.png
+          sips -z 512 512   icon --out icon.iconset/icon_512x512.png
+          sips -z 1024 1024   icon --out icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset
+          cd ..
+          echo '--icon "icon/icon.icns"' >> args
+      - name: "JPackage Mac"
+        id: "jpackage"
+        shell: "bash"
+        run: |
+          cd build/release
+          mkdir package
+          . info.env
+          jpackage "@args" --about-url "${{ github.server_url }}/${{ github.repository }}" -t dmg --mac-package-identifier "${NAME}" -d package
+          mv "$(find package -type f)" "$(pwd)/package/${NAME}-${VERSION}-arm64.dmg"
+      - name: "Upload Artifact to Release"
+        uses: "softprops/action-gh-release@v2"
+        if: "github.ref_type == 'tag'"
+        with:
+          files: "build/release/package/*"
+          token: "${{ secrets.TOKEN }}"
+  build_mac_x86_64:
+    name: "JPackage Build for Mac x86_64"
+    runs-on: "macos-13"
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v5"
+      - name: "Set up Java"
+        uses: "actions/setup-java@v5"
+        with:
+          java-version: "${{ env.JAVA_VERSION }}"
+          distribution: "temurin"
+      - name: "Setup Gradle"
+        uses: "gradle/actions/setup-gradle@v4"
+      - name: "Build Java"
+        shell: "bash"
+        run: |
+          ./gradlew jar
+          ./gradlew release
+      - name: "Process Icon"
+        if: "env.ICON_PATH != ''"
+        run: |
+          mkdir build/release/icon
+          cp $ICON_PATH build/release/icon/icon
+          cd build/release/icon
+          mkdir icon.iconset
+          sips -z 16 16     icon --out icon.iconset/icon_16x16.png
+          sips -z 32 32     icon --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     icon --out icon.iconset/icon_32x32.png
+          sips -z 64 64     icon --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   icon --out icon.iconset/icon_128x128.png
+          sips -z 256 256   icon --out icon.iconset/icon_128x128@2x.png
+          sips -z 256 256   icon --out icon.iconset/icon_256x256.png
+          sips -z 512 512   icon --out icon.iconset/icon_256x256@2x.png
+          sips -z 512 512   icon --out icon.iconset/icon_512x512.png
+          sips -z 1024 1024   icon --out icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset
+          cd ..
+          echo "--icon icon/icon.icns" >> args
+      - name: "JPackage Mac"
+        id: "jpackage"
+        shell: "bash"
+        run: |
+          cd build/release
+          mkdir package
+          . info.env
+          jpackage "@args" --about-url "${{ github.server_url }}/${{ github.repository }}" -t dmg --mac-package-identifier "${NAME}" -d package
+          mv "$(find package -type f)" "$(pwd)/package/${NAME}-${VERSION}-x86_64.dmg"
+      - name: "Upload Artifact to Release"
+        uses: "softprops/action-gh-release@v2"
+        if: "github.ref_type == 'tag'"
+        with:
+          files: "build/release/package/*"
+          token: "${{ secrets.TOKEN }}"
+  build_windows:
+    name: "JPackage Build for Windows"
+    runs-on: "windows-latest"
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v5"
+      - name: "Set up Java"
+        uses: "actions/setup-java@v5"
+        with:
+          java-version: "${{ env.JAVA_VERSION }}"
+          distribution: "temurin"
+      - name: "Setup Gradle"
+        uses: "gradle/actions/setup-gradle@v4"
+      - name: "Build Java"
+        shell: "bash"
+        run: |
+          ./gradlew jar
+          ./gradlew release
+      - name: "Install ImageMagick"
+        if: "env.ICON_PATH != ''"
+        run: |
+          choco install imagemagick -y
+      - name: "Process Icon"
+        if: "env.ICON_PATH != ''"
+        shell: "bash"
+        run: |
+          mkdir build/release/icon
+          ICON_NAME="$(basename "${ICON_PATH}")"
+          cp $ICON_PATH "build/release/icon/${ICON_NAME}"
+          cd build/release/icon
+          magick convert "${ICON_NAME}" -define icon:auto-resize=256,128,64,48,32,16 icon.ico
+          cd ..
+          echo "--icon icon/icon.ico" >> args
+      - name: "JPackage Windows"
+        id: "jpackage"
+        shell: "bash"
+        run: |
+          cd build/release
+          mkdir package
+          jpackage "@args" --about-url "${{ github.server_url }}/${{ github.repository }}" -t msi --win-dir-chooser --win-menu --win-shortcut -d package
+          . info.env
+          mv "$(find package -type f)" "$(pwd)/package/${NAME}-${VERSION}-x86_64.msi"
+      - name: "Upload Artifact to Release"
+        uses: "softprops/action-gh-release@v2"
+        if: "github.ref_type == 'tag'"
+        with:
+          files: "build/release/package/*"
+          token: "${{ secrets.TOKEN }}"
+  build_linux_x86_64:
+    name: "JPackage Build for Linux x86_64"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v5"
+      - name: "Set up Java"
+        uses: "actions/setup-java@v5"
+        with:
+          java-version: "${{ env.JAVA_VERSION }}"
+          distribution: "temurin"
+      - name: "Setup Gradle"
+        uses: "gradle/actions/setup-gradle@v4"
+      - name: "Setup AppImageTool"
+        run: |
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O ~/appimagetool
+           chmod +x ~/appimagetool
+      - name: "Install FUSE"
+        run: |
+          sudo apt-get update
+          sudo add-apt-repository universe
+          sudo apt install libfuse2t64
+      - name: "Build Java"
+        shell: "bash"
+        run: |
+          ./gradlew jar
+          ./gradlew release
+      - name: "Process Icon"
+        if: "env.ICON_PATH != ''"
+        run: |
+          mkdir build/release/icon
+          ICON_NAME="$(basename "${ICON_PATH}")"
+          cp $ICON_PATH "build/release/icon/${ICON_NAME}"
+          cd build/release/
+          echo "--icon icon/${ICON_NAME}" >> args
+      - name: "JPackage Linux"
+        id: "jpackage"
+        shell: "bash"
+        run: |
+          cd build/release
+          mkdir package
+          jpackage "@args" -t app-image -d package
+          . info.env
+          cd package
+          mkdir usr
+          mv "${NAME}"/* usr
+          mv usr $NAME
+          cd $NAME
+          ln -s "usr/bin/${NAME}" AppRun
+          chmod +x AppRun
+          IMAGE_NAME="$(basename "$(find usr/lib -type f -name "${NAME}*")")"
+          ln -s "usr/lib/${IMAGE_NAME}" $IMAGE_NAME
+          echo "[Desktop Entry]" > "${NAME}.desktop"
+          echo "Name=$NAME" >> "${NAME}.desktop"
+          echo "Exec=${NAME}" >> "${NAME}.desktop"
+          echo "Icon=${NAME}" >> "${NAME}.desktop"
+          echo "Type=Application" >> "${NAME}.desktop"
+          echo "Categories=Utility;" >> "${NAME}.desktop"
+          cd ..
+          ~/appimagetool $NAME
+          rm -rf $NAME
+          mv "$(find . -type f)" "${NAME}-${VERSION}-x86_64.AppImage"
+
+      - name: "Upload Artifact to Release"
+        uses: "softprops/action-gh-release@v2"
+        if: "github.ref_type == 'tag'"
+        with:
+          files: "build/release/package/*"
+          token: "${{ secrets.TOKEN }}"
+  build_linux_arm64:
+    name: "JPackage Build for Linux arm64"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v5"
+      - name: "Set up Java"
+        uses: "actions/setup-java@v5"
+        with:
+          java-version: "${{ env.JAVA_VERSION }}"
+          distribution: "temurin"
+      - name: "Setup Gradle"
+        uses: "gradle/actions/setup-gradle@v4"
+      - name: "Setup AppImageTool"
+        run: |
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O ~/appimagetool
+           chmod +x ~/appimagetool
+      - name: "Install FUSE"
+        run: |
+          sudo apt-get update
+          sudo add-apt-repository universe
+          sudo apt install libfuse2t64
+      - name: "Build Java"
+        shell: "bash"
+        run: |
+          ./gradlew jar
+          ./gradlew release
+      - name: "JPackage Linux"
+        id: "jpackage"
+        shell: "bash"
+        run: |
+          cd build/release
+          mkdir package
+          jpackage "@args" -t app-image -d package
+          . info.env
+          cd package
+          mkdir usr
+          mv "${NAME}"/* usr
+          mv usr $NAME
+          cd $NAME
+          ln -s "usr/bin/${NAME}" AppRun
+          chmod +x AppRun
+          IMAGE_NAME="$(basename "$(find usr/lib -type f -name "${NAME}*")")"
+          ln -s "usr/lib/${IMAGE_NAME}" $IMAGE_NAME
+          echo "[Desktop Entry]" > "${NAME}.desktop"
+          echo "Name=$NAME" >> "${NAME}.desktop"
+          echo "Exec=${NAME}" >> "${NAME}.desktop"
+          echo "Icon=${NAME}" >> "${NAME}.desktop"
+          echo "Type=Application" >> "${NAME}.desktop"
+          echo "Categories=Utility;" >> "${NAME}.desktop"
+          cd ..
+          ~/appimagetool $NAME
+          rm -rf $NAME
+          mv "$(find . -type f)" "${NAME}-${VERSION}-arm64.AppImage"
+
+      - name: "Upload Artifact to Release"
+        uses: "softprops/action-gh-release@v2"
+        if: "github.ref_type == 'tag'"
+        with:
+          files: "build/release/package/*"
+          token: "${{ secrets.TOKEN }}"
