@@ -1,4 +1,4 @@
-// version 1.0.0
+// version 1.0.1
 
 import java.util.jar.JarFile
 import java.util.stream.Collectors
@@ -45,9 +45,9 @@ tasks.register("writeJPackageArgs") {
                     -i "input"
                     --main-jar ${tasks.jar.archiveFileName.get()}
                     --main-class ${application.mainClass.get()}
-                    
                 """.stripIndent()
-        }}
+            }}
+
         """.stripIndent())
     }
 }

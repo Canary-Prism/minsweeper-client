@@ -53,7 +53,7 @@ dependencies {
     implementation("com.github.weisj:darklaf-core:3.1.0")
 }
 
-apply("release.gradle")
+apply("jpackage.gradle")
 
 tasks.shadowJar {
     mergeServiceFiles()
