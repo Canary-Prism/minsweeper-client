@@ -87,13 +87,13 @@ public class MinsweeperGame extends JComponent {
         
         this.add(menu);
         
-        this.state = minsweeper.start(Solver.getDefault());
+        this.state = minsweeper.start(solver);
         
         this.add(new BoardView());
     }
     
     private void start() {
-        state = minsweeper.start(Solver.getDefault());
+        state = minsweeper.start(solver);
         this.revalidate();
     }
     
@@ -107,7 +107,7 @@ public class MinsweeperGame extends JComponent {
         }
         pool.submit(ForkJoinTask.adapt(() -> {
             while (state.status() == GameStatus.PLAYING) {
-                var move = Solver.getDefault().solve(state);
+                var move = solver.solve(state);
                 synchronized (this) {
                     if (move instanceof Move(Move.Point(var x, var y), var action)) {
                         switch (action) {
