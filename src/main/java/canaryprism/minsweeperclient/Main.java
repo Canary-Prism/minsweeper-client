@@ -48,7 +48,7 @@ public class Main {
     private static boolean auto;
     private static BoardSize size = ConventionalSize.BEGINNER.size;
     private static Solver solver = Solver.getDefault();
-    private static Texture texture = Texture.DARK;
+    private static Texture texture = Texture.LIGHT;
     
     public static void main(String[] args) {
         
