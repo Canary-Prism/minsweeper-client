@@ -20,6 +20,7 @@ import canaryprism.minsweeper.BoardSize;
 import canaryprism.minsweeper.ConventionalSize;
 import canaryprism.minsweeper.solver.Solver;
 import canaryprism.minsweeperclient.swing.MinsweeperGame;
+import org.apache.commons.lang3.SystemUtils;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -65,12 +66,19 @@ public class Main {
     private static JMenuBar makeMenuBar() {
         var menu_bar = new JMenuBar();
         
+        var modifier_key = KeyEvent.ALT_DOWN_MASK;
+        
+        if (SystemUtils.IS_OS_MAC)
+            modifier_key = KeyEvent.META_DOWN_MASK;
+        else if (SystemUtils.IS_OS_WINDOWS)
+            modifier_key = KeyEvent.CTRL_DOWN_MASK;
+        
         var size_menu = new JMenu("Size");
         size_menu.setMnemonic(KeyEvent.VK_S);
         
         var beginner_size = size_menu.add("Beginner");
         beginner_size.setMnemonic(KeyEvent.VK_B);
-        beginner_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, KeyEvent.ALT_DOWN_MASK));
+        beginner_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, modifier_key));
         beginner_size.addActionListener((e) -> {
             size = ConventionalSize.BEGINNER.size;
             changeGame();
@@ -78,7 +86,7 @@ public class Main {
         
         var intermediate_size = size_menu.add("Intermediate");
         intermediate_size.setMnemonic(KeyEvent.VK_I);
-        intermediate_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, KeyEvent.ALT_DOWN_MASK));
+        intermediate_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, modifier_key));
         intermediate_size.addActionListener((e) -> {
             size = ConventionalSize.INTERMEDIATE.size;
             changeGame();
@@ -86,7 +94,7 @@ public class Main {
         
         var expert_size = size_menu.add("Expert");
         expert_size.setMnemonic(KeyEvent.VK_E);
-        expert_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.ALT_DOWN_MASK));
+        expert_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, modifier_key));
         expert_size.addActionListener((e) -> {
             size = ConventionalSize.EXPERT.size;
             changeGame();
@@ -94,7 +102,7 @@ public class Main {
         
         var custom_size = size_menu.add("Custom");
         custom_size.setMnemonic(KeyEvent.VK_C);
-        custom_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.ALT_DOWN_MASK));
+        custom_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, modifier_key));
         custom_size.addActionListener((_) -> Thread.ofVirtual().start(() -> {
             size = promptBoardSize();
             changeGame();
@@ -129,7 +137,7 @@ public class Main {
         
         var auto_checkbox = new JCheckBoxMenuItem("Auto Mode");
         auto_checkbox.setMnemonic(KeyEvent.VK_A);
-        auto_checkbox.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, KeyEvent.ALT_DOWN_MASK));
+        auto_checkbox.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, modifier_key));
         auto_checkbox.addItemListener((e) -> {
             auto = (e.getStateChange() == ItemEvent.SELECTED);
             game.setAuto(auto);

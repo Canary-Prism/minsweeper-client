@@ -4,4 +4,5 @@ module canaryprism.minsweeperclient {
     requires java.net.http;
     requires canaryprism.minsweeper;
     requires org.apache.xmlgraphics.batik.transcoder;
+    requires org.apache.commons.lang3;
 }

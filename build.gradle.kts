@@ -45,6 +45,9 @@ dependencies {
     implementation("io.github.canary-prism:minsweeper-java:1.1.2")
     implementation("org.apache.xmlgraphics:batik-swing:1.18")
     implementation("org.apache.xmlgraphics:batik-transcoder:1.18")
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    implementation("org.apache.commons:commons-lang3:3.18.0")
 }
 
 apply("release.gradle")
