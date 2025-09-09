@@ -20,6 +20,13 @@ import canaryprism.minsweeper.BoardSize;
 import canaryprism.minsweeper.ConventionalSize;
 import canaryprism.minsweeper.solver.Solver;
 import canaryprism.minsweeperclient.swing.MinsweeperGame;
+import canaryprism.minsweeperclient.swing.Texture;
+import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import org.apache.commons.lang3.SystemUtils;
 
 import javax.swing.*;
@@ -27,8 +34,10 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
+import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 public class Main {
     
@@ -39,11 +48,20 @@ public class Main {
     private static boolean auto;
     private static BoardSize size = ConventionalSize.BEGINNER.size;
     private static Solver solver = Solver.getDefault();
+    private static Texture texture = Texture.DARK;
     
     public static void main(String[] args) {
         
+        FlatDarkLaf.installLafInfo();
+        FlatDarculaLaf.installLafInfo();
+        FlatIntelliJLaf.installLafInfo();
+        FlatLightLaf.installLafInfo();
+        FlatMacDarkLaf.installLafInfo();
+        FlatMacLightLaf.installLafInfo();
+        
         System.setProperty("apple.awt.application.name", "Minsweeper");
         System.setProperty("apple.laf.useScreenMenuBar", "true");
+        System.setProperty("apple.awt.application.appearance", "system");
         
         
         frame = new JFrame();
@@ -54,12 +72,12 @@ public class Main {
         
         frame.setJMenuBar(menu_bar);
         
-        game = new MinsweeperGame(ConventionalSize.BEGINNER.size, Solver.getDefault());
+        game = new MinsweeperGame(ConventionalSize.BEGINNER.size, Solver.getDefault(), texture);
         
         frame.add(game);
         
         frame.pack();
-        frame.setResizable(false);
+//        frame.setResizable(false);
         frame.setVisible(true);
     }
     
@@ -111,6 +129,68 @@ public class Main {
         
         menu_bar.add(size_menu);
         
+        var theme_menu = new JMenu("Theme");
+        theme_menu.setMnemonic(KeyEvent.VK_T);
+        var laf_menu = new JMenu("Look and Feel");
+        var laf_button_group = new ButtonGroup();
+        record LafEntry(String name, Class<? extends LookAndFeel> type) {
+            
+            @Override
+            public boolean equals(Object o) {
+                return (o instanceof LafEntry other)
+                        && Objects.equals(type, other.type);
+            }
+            
+            @Override
+            public int hashCode() {
+                return Objects.hashCode(type);
+            }
+        }
+        var loader = ServiceLoader.load(LookAndFeel.class);
+        Stream.concat(
+                        Stream.of(UIManager.getInstalledLookAndFeels())
+                                .map((e) -> {
+                                    try {
+                                        //noinspection unchecked
+                                        return new LafEntry(e.getName(), (Class<? extends LookAndFeel>) Class.forName(e.getClassName()));
+                                    } catch (ClassNotFoundException ex) {
+                                        throw new RuntimeException(ex);
+                                    }
+                                }),
+                        loader.stream()
+                                .map(ServiceLoader.Provider::get)
+                                .map((e) -> new LafEntry(e.getName(), e.getClass()))
+                )
+                .distinct()
+                .forEach((entry) -> {
+                    var button = new JRadioButtonMenuItem(entry.name);
+                    button.addItemListener((e) -> {
+                        if (e.getStateChange() == ItemEvent.SELECTED) {
+                            changeLaf(entry.type);
+                        }
+                    });
+                    laf_button_group.add(button);
+                    laf_menu.add(button);
+                });
+        theme_menu.add(laf_menu);
+
+        var texture_menu = new JMenu("Texture");
+        var texture_button_group = new ButtonGroup();
+        for (var texture : Texture.values()) {
+            var button = new JRadioButtonMenuItem(texture.readable_name);
+            button.addItemListener((e) -> {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    Main.texture = texture;
+                    refreshTexture();
+                }
+            });
+            texture_button_group.add(button);
+            texture_menu.add(button);
+        }
+        theme_menu.add(texture_menu);
+        
+        menu_bar.add(theme_menu);
+        
         var solver_menu = new JMenu("Solver");
         solver_menu.setMnemonic(KeyEvent.VK_S);
         var solver_loader = ServiceLoader.load(Solver.class);
@@ -150,12 +230,27 @@ public class Main {
         return menu_bar;
     }
     
+    private static void changeLaf(Class<? extends LookAndFeel> type) {
+        try {
+            UIManager.setLookAndFeel(type.getName());
+            SwingUtilities.updateComponentTreeUI(frame);
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
+                 UnsupportedLookAndFeelException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
     private static void changeGame() {
         frame.remove(game);
-        game = new MinsweeperGame(size, solver);
+        game = new MinsweeperGame(size, solver, texture);
         game.setAuto(auto);
         frame.add(game);
         frame.pack();
+        System.out.println(frame.getBackground());
+    }
+    
+    private static void refreshTexture() {
+        game.setTheme(texture);
     }
     
     

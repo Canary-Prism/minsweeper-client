@@ -48,6 +48,9 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation("org.apache.commons:commons-lang3:3.18.0")
+
+    implementation("com.formdev:flatlaf:3.6.1")
+    implementation("com.github.weisj:darklaf-core:3.1.0")
 }
 
 apply("release.gradle")
