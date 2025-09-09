@@ -78,6 +78,7 @@ public class Main {
         
         frame.pack();
 //        frame.setResizable(false);
+        frame.setMinimumSize(frame.getSize());
         frame.setVisible(true);
     }
     
@@ -246,6 +247,7 @@ public class Main {
         game.setAuto(auto);
         frame.add(game);
         frame.pack();
+        frame.setMinimumSize(frame.getSize());
     }
     
     private static void refreshTexture() {
@@ -257,7 +259,7 @@ public class Main {
     private static BoardSize promptBoardSize() {
         
         class SizeDialig {
-            static JDialog dialog;
+            static final JDialog dialog;
             
             static CompletableFuture<BoardSize> future;
             

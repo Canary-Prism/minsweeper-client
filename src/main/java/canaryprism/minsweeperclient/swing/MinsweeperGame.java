@@ -62,7 +62,8 @@ public class MinsweeperGame extends JComponent {
         this.minsweeper = new Minsweeper(size);
         this.theme = theme;
         
-        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+//        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        this.setLayout(new BorderLayout());
         
         var menu = new JPanel(new BorderLayout());
         menu.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -89,11 +90,11 @@ public class MinsweeperGame extends JComponent {
         menu.add(remaining_mines_label, BorderLayout.EAST);
         
         
-        this.add(menu);
+        this.add(menu, BorderLayout.NORTH);
         
         this.state = minsweeper.start(solver);
         
-        this.add(new BoardView());
+        this.add(new BoardView(), BorderLayout.CENTER);
     }
     
     public Texture getTheme() {
@@ -164,13 +165,16 @@ public class MinsweeperGame extends JComponent {
         
         record Point(int x, int y) {}
         
-        private static final Map<Point, CellView> cells = new HashMap<>();
+        private final Map<Point, CellView> cells = new HashMap<>();
         
         private static final Map<String, BufferedImage> image_map = Collections.synchronizedMap(new HashMap<>());
         
         BoardView() {
-            this.setLayout(new GridLayout(size.height(), size.width()));
+            this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
             this.setFont(Font.decode("Menlo").deriveFont(32f));
+            
+            var grid = new JPanel(new GridBagLayout());
+            var constraints = new GridBagConstraints();
             
             for (int y = 0; y < size.height(); y++)
                 for (int x = 0; x < size.width(); x++) {
@@ -213,13 +217,36 @@ public class MinsweeperGame extends JComponent {
                     
 //                    component.setBorder(new LineBorder(Color.BLACK));
                     
-                    this.add(component);
+                    constraints.gridx = point.x;
+                    constraints.gridy = point.y;
+                    
+                    grid.add(component, constraints);
                     cells.put(point, component);
                 }
+            
+            this.add(grid);
         }
         
         @Override
-        public Dimension getMaximumSize() {
+        public void doLayout() {
+            var cell_size = Math.min((float)this.getWidth() / size.width(), (float)this.getHeight() / size.height());
+            var y_pos = 0f;
+            for (int y = 0; y < size.height(); y++) {
+                var x_pos = 0f;
+                for (int x = 0; x < size.width(); x++) {
+                    cells.get(new Point(x, y))
+                            .setPreferredSize(new Dimension(
+                                    Math.round(x_pos + cell_size) - Math.round(x_pos),
+                                    Math.round(y_pos + cell_size) - Math.round(y_pos)));
+                    x_pos += cell_size;
+                }
+                y_pos += cell_size;
+            }
+            super.doLayout();
+        }
+        
+        @Override
+        public Dimension getMinimumSize() {
             return getPreferredSize();
         }
         
@@ -264,8 +291,8 @@ public class MinsweeperGame extends JComponent {
                         
                         BufferedImageTranscoder transcoder = new BufferedImageTranscoder();
                         
-                        transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, ((float) this.getWidth() * 10));
-                        transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, ((float) this.getHeight() * 10));
+                        transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, 512f);
+                        transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, 512f);
                         
                         TranscoderInput input = new TranscoderInput(url);
                         try {
