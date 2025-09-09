@@ -31,6 +31,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -53,10 +54,13 @@ public class MinsweeperGame extends JComponent {
     
     private boolean auto = false;
     
-    public MinsweeperGame(BoardSize size, Solver solver) {
+    private volatile Texture theme;
+    
+    public MinsweeperGame(BoardSize size, Solver solver, Texture theme) {
         this.size = size;
         this.solver = solver;
         this.minsweeper = new Minsweeper(size);
+        this.theme = theme;
         
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         
@@ -90,6 +94,17 @@ public class MinsweeperGame extends JComponent {
         this.state = minsweeper.start(solver);
         
         this.add(new BoardView());
+    }
+    
+    public Texture getTheme() {
+        return theme;
+    }
+    
+    public MinsweeperGame setTheme(Texture theme) {
+        this.theme = theme;
+        BoardView.image_map.clear();
+        repaint();
+        return this;
     }
     
     private void start() {
@@ -151,7 +166,7 @@ public class MinsweeperGame extends JComponent {
         
         private static final Map<Point, CellView> cells = new HashMap<>();
         
-        private static final Map<String, BufferedImage> image_map = new HashMap<>();
+        private static final Map<String, BufferedImage> image_map = Collections.synchronizedMap(new HashMap<>());
         
         BoardView() {
             this.setLayout(new GridLayout(size.height(), size.width()));
@@ -226,7 +241,7 @@ public class MinsweeperGame extends JComponent {
                 var g = ((Graphics2D) g1);
                 var cell = state.board().get(point.x, point.y);
                 
-                var file_name = switch (cell) {
+                var file_name = theme.asset_path_name + "/" + switch (cell) {
                     case Cell.Revealed(var number) when number == 0 -> "celldown";
                     case Cell.Revealed(var number) -> "cell" + number;
                     case Cell.Unknown _ -> {
