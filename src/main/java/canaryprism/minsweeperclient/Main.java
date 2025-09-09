@@ -246,7 +246,6 @@ public class Main {
         game.setAuto(auto);
         frame.add(game);
         frame.pack();
-        System.out.println(frame.getBackground());
     }
     
     private static void refreshTexture() {
