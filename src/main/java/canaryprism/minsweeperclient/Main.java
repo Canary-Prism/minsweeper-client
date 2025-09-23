@@ -36,8 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ItemEvent;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -112,6 +111,8 @@ public class Main {
             settings = new Settings();
         }
         
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> saveSettings(settings_path)));
+        
         
         frame = new JFrame();
         
@@ -130,9 +131,18 @@ public class Main {
         changeGame();
         refreshTexture();
         
-        frame.pack();
-//        frame.setResizable(false);
-        frame.setMinimumSize(frame.getSize());
+        if (settings.frame_size.orElse(null) instanceof Dimension size)
+            frame.setSize(size);
+        else
+            frame.pack();
+        
+        frame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                settings.frame_size = Optional.of(frame.getSize());
+            }
+        });
+        
         frame.setVisible(true);
     }
     
@@ -303,12 +313,17 @@ public class Main {
     }
     
     private static void changeGame() {
+        var pack = frame.getSize().equals(frame.getPreferredSize());
         frame.remove(game);
         game = new MinsweeperGame(settings.size, solver_map.get(settings.solver), settings.texture);
         game.setAuto(settings.auto);
         frame.add(game);
-        frame.pack();
-        frame.setMinimumSize(frame.getSize());
+        frame.setMinimumSize(new Dimension());
+        if (pack) {
+            frame.pack();
+        }
+        frame.setMinimumSize(frame.getPreferredSize());
+        frame.revalidate();
         saveSettings(settings_path);
     }
     
