@@ -27,30 +27,60 @@ import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
+import dev.dirs.ProjectDirectories;
 import org.apache.commons.lang3.SystemUtils;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
-import java.util.Objects;
-import java.util.ServiceLoader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 public class Main {
     
+    private static final ProjectDirectories dirs = ProjectDirectories.from("", "canaryprism", "minsweeper-client");
+    private static final ObjectMapper mapper = JsonMapper.shared();
+    
     private static JFrame frame;
+    
+    private static final Map<Class<? extends Solver>, Solver> solver_map = new HashMap<>();
+    
+    private static class Settings {
+        
+        public volatile boolean auto = false;
+        public volatile BoardSize size = ConventionalSize.BEGINNER.size;
+        public volatile Class<? extends Solver> solver = Solver.getDefault().getClass();
+        public volatile Texture texture = Texture.LIGHT;
+        @SuppressWarnings("unchecked")
+        public volatile Class<? extends LookAndFeel> laf = (Class<? extends LookAndFeel>) Class.forName(UIManager.getSystemLookAndFeelClassName());
+        public volatile Optional<Dimension> frame_size;
+        
+        private Settings() throws ClassNotFoundException {
+        }
+    }
+    private static Settings settings;
+    private static Path settings_path;
+    
+    private static void loadSettings(Path path) {
+        settings = mapper.readValue(path, Settings.class);
+    }
+    private static void saveSettings(Path path) {
+        mapper.writeValue(path, settings);
+    }
     
     private static MinsweeperGame game;
     
-    private static boolean auto;
-    private static BoardSize size = ConventionalSize.BEGINNER.size;
-    private static Solver solver = Solver.getDefault();
-    private static Texture texture = Texture.LIGHT;
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         
         FlatDarkLaf.installLafInfo();
         FlatDarculaLaf.installLafInfo();
@@ -63,6 +93,25 @@ public class Main {
         System.setProperty("apple.laf.useScreenMenuBar", "true");
         System.setProperty("apple.awt.application.appearance", "system");
         
+        var provider = ServiceLoader.load(Solver.class);
+        for (var solver : provider) {
+            solver_map.put(solver.getClass(), solver);
+        }
+        
+        var save_path = Path.of(dirs.dataLocalDir);
+        if (!Files.isDirectory(save_path)) {
+            Files.createDirectories(save_path);
+        }
+        
+        settings_path = save_path.resolve("settings.json");
+        
+        try {
+            loadSettings(settings_path);
+        } catch (JacksonException e) {
+            e.printStackTrace();
+            settings = new Settings();
+        }
+        
         
         frame = new JFrame();
         
@@ -72,9 +121,14 @@ public class Main {
         
         frame.setJMenuBar(menu_bar);
         
-        game = new MinsweeperGame(ConventionalSize.BEGINNER.size, Solver.getDefault(), texture);
+        changeLaf(settings.laf);
+        
+        game = new MinsweeperGame(ConventionalSize.BEGINNER.size, Solver.getDefault(), settings.texture);
         
         frame.add(game);
+        
+        changeGame();
+        refreshTexture();
         
         frame.pack();
 //        frame.setResizable(false);
@@ -98,8 +152,8 @@ public class Main {
         var beginner_size = size_menu.add("Beginner");
         beginner_size.setMnemonic(KeyEvent.VK_B);
         beginner_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, modifier_key));
-        beginner_size.addActionListener((e) -> {
-            size = ConventionalSize.BEGINNER.size;
+        beginner_size.addActionListener((_) -> {
+            settings.size = ConventionalSize.BEGINNER.size;
             changeGame();
         });
         
@@ -107,7 +161,7 @@ public class Main {
         intermediate_size.setMnemonic(KeyEvent.VK_I);
         intermediate_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, modifier_key));
         intermediate_size.addActionListener((e) -> {
-            size = ConventionalSize.INTERMEDIATE.size;
+            settings.size = ConventionalSize.INTERMEDIATE.size;
             changeGame();
         });
         
@@ -115,7 +169,7 @@ public class Main {
         expert_size.setMnemonic(KeyEvent.VK_E);
         expert_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, modifier_key));
         expert_size.addActionListener((e) -> {
-            size = ConventionalSize.EXPERT.size;
+            settings.size = ConventionalSize.EXPERT.size;
             changeGame();
         });
         
@@ -123,7 +177,7 @@ public class Main {
         custom_size.setMnemonic(KeyEvent.VK_C);
         custom_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, modifier_key));
         custom_size.addActionListener((_) -> Thread.ofVirtual().start(() -> {
-            size = promptBoardSize();
+            settings.size = promptBoardSize();
             changeGame();
         }));
         
@@ -165,6 +219,8 @@ public class Main {
                 .distinct()
                 .forEach((entry) -> {
                     var button = new JRadioButtonMenuItem(entry.name);
+                    if (entry.type == settings.laf)
+                        button.setSelected(true);
                     button.addItemListener((e) -> {
                         if (e.getStateChange() == ItemEvent.SELECTED) {
                             changeLaf(entry.type);
@@ -179,9 +235,11 @@ public class Main {
         var texture_button_group = new ButtonGroup();
         for (var texture : Texture.values()) {
             var button = new JRadioButtonMenuItem(texture.readable_name);
+            if (texture == settings.texture)
+                button.setSelected(true);
             button.addItemListener((e) -> {
                 if (e.getStateChange() == ItemEvent.SELECTED) {
-                    Main.texture = texture;
+                    settings.texture = texture;
                     refreshTexture();
                 }
             });
@@ -198,11 +256,11 @@ public class Main {
         var solver_button_group = new ButtonGroup();
         for (var solver : solver_loader) {
             var button = new JRadioButtonMenuItem(solver.getClass().getName());
-            if (Solver.getDefault().getClass() == solver.getClass())
+            if (settings.solver == solver.getClass())
                 button.setSelected(true);
             button.addItemListener((e) -> {
                 if (e.getStateChange() == ItemEvent.SELECTED) {
-                    Main.solver = solver;
+                    Main.settings.solver = solver.getClass();
                     changeGame();
                 }
             });
@@ -219,9 +277,10 @@ public class Main {
         var auto_checkbox = new JCheckBoxMenuItem("Auto Mode");
         auto_checkbox.setMnemonic(KeyEvent.VK_A);
         auto_checkbox.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, modifier_key));
+        auto_checkbox.setSelected(settings.auto);
         auto_checkbox.addItemListener((e) -> {
-            auto = (e.getStateChange() == ItemEvent.SELECTED);
-            game.setAuto(auto);
+            settings.auto = (e.getStateChange() == ItemEvent.SELECTED);
+            game.setAuto(settings.auto);
         });
         
         cheats_menu.add(auto_checkbox);
@@ -232,6 +291,7 @@ public class Main {
     }
     
     private static void changeLaf(Class<? extends LookAndFeel> type) {
+        settings.laf = type;
         try {
             UIManager.setLookAndFeel(type.getName());
             SwingUtilities.updateComponentTreeUI(frame);
@@ -239,19 +299,22 @@ public class Main {
                  UnsupportedLookAndFeelException e) {
             throw new RuntimeException(e);
         }
+        saveSettings(settings_path);
     }
     
     private static void changeGame() {
         frame.remove(game);
-        game = new MinsweeperGame(size, solver, texture);
-        game.setAuto(auto);
+        game = new MinsweeperGame(settings.size, solver_map.get(settings.solver), settings.texture);
+        game.setAuto(settings.auto);
         frame.add(game);
         frame.pack();
         frame.setMinimumSize(frame.getSize());
+        saveSettings(settings_path);
     }
     
     private static void refreshTexture() {
-        game.setTheme(texture);
+        game.setTheme(settings.texture);
+        saveSettings(settings_path);
     }
     
     

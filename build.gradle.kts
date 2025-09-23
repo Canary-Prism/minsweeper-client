@@ -49,6 +49,12 @@ dependencies {
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
     implementation("org.apache.commons:commons-lang3:3.18.0")
 
+    // https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind
+    implementation("tools.jackson.core:jackson-databind:3.0.0-rc10")
+
+    // https://mvnrepository.com/artifact/dev.dirs/directories
+    implementation("dev.dirs:directories:26")
+
     implementation("com.formdev:flatlaf:3.6.1")
     implementation("com.github.weisj:darklaf-core:3.1.0")
 }

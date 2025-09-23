@@ -28,7 +28,7 @@
     <inspection_tool class="LocalVariableNamingConvention" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_ignoreForLoopParameters" value="false" />
       <option name="m_ignoreCatchParameters" value="false" />
-      <option name="m_regex" value="[a-z][A-Za-z_\d]*" />
+      <option name="m_regex" value="(_|[a-z][A-Za-z_\d]*)" />
       <option name="m_minLength" value="1" />
       <option name="m_maxLength" value="100" />
     </inspection_tool>
