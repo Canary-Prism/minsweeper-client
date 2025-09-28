@@ -9,5 +9,5 @@
 	<line x1="91" y1="119" x2="119" y2="91" stroke-width="7" stroke="#000000" /> <!-- /left eye -->
 	<line x1="179" y1="91" x2="151" y2="119" stroke-width="7" stroke="#000000" /> <!-- \right eye -->
 	<line x1="151" y1="91" x2="179" y2="119" stroke-width="7" stroke="#000000" /> <!-- /right eye -->
-	<path d="M 95 180 Q 110 155, 135 155 T 175 180" fill="transparent" stroke="#000000" stroke-width="8" /> <!-- mouth -->
+	<path d="M 95 180 Q 110 155, 135 155 T 175 180" fill="none" stroke="#000000" stroke-width="8" /> <!-- mouth -->
 </svg>

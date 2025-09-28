@@ -7,5 +7,5 @@
 	<circle cx="135" cy="135" r="80" stroke-width="7" stroke="#000000" fill="#ffff00" /> <!-- face -->
 	<circle cx="105" cy="105" r="13" fill="#000000" /> <!-- left eye -->
 	<circle cx="165" cy="105" r="13" fill="#000000" /> <!-- right eye -->
-	<ellipse cx="135" cy="165" rx="17" ry="20" fill="transparent" stroke-width="10" stroke="#000000" /> <!-- mouth -->
+	<ellipse cx="135" cy="165" rx="17" ry="20" fill="none" stroke-width="10" stroke="#000000" /> <!-- mouth -->
 </svg>
