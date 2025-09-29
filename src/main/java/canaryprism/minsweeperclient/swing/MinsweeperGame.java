@@ -93,6 +93,14 @@ public class MinsweeperGame extends JComponent {
         this.setOpaque(true);
         reloadBackground();
         
+        this.addContainerListener(new ContainerAdapter() {
+            @Override
+            public void componentAdded(ContainerEvent e) {
+                super.componentAdded(e);
+                requestFocusInWindow();
+            }
+        });
+        
 //        this.setLayout(new BorderLayout());
 //        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setLayout(new GridBagLayout());
