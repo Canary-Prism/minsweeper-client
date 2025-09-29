@@ -26,8 +26,7 @@ import org.apache.batik.transcoder.image.ImageTranscoder;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.*;
@@ -350,17 +349,38 @@ public class MinsweeperGame extends JComponent {
                     
 //                    component.setModel(new DefaultButtonModel());
 
-                    component.addChangeListener((_) -> {
-                        if (state.board().get(point.x, point.y) instanceof Cell.Revealed) {
-                            for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
-                                for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
-                                    if (state.board().get(x3, y3) instanceof Cell.Unknown || !component.getModel().isArmed()) {
-                                        cells.get(new Point(x3, y3)).getModel().setArmed(component.getModel().isArmed());
+                    component.addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mousePressed(MouseEvent e) {
+                            update();
+                        }
+                        @Override
+                        public void mouseReleased(MouseEvent e) {
+                            update();
+                        }
+                        
+                        @Override
+                        public void mouseEntered(MouseEvent e) {
+                            update();
+                        }
+                        
+                        @Override
+                        public void mouseExited(MouseEvent e) {
+                            update();
+                        }
+                        
+                        void update() {
+                            if (state.board().get(point.x, point.y) instanceof Cell.Revealed) {
+                                for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
+                                    for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
+                                        if (state.board().get(x3, y3) instanceof Cell.Unknown || !component.getModel().isArmed()) {
+                                            cells.get(new Point(x3, y3)).getModel().setArmed(component.getModel().isArmed());
+                                        }
                                     }
                                 }
                             }
+                            MinsweeperGame.this.repaint();
                         }
-                        MinsweeperGame.this.repaint();
                     });
                     
                     component.addActionListener((e) -> {
@@ -393,8 +413,7 @@ public class MinsweeperGame extends JComponent {
                     cells.put(point, component);
                 }
             
-            this.setMinimumSize(new Dimension(30 * size.width(), 30 * size.height()));
-            this.setPreferredSize(this.getMinimumSize());
+            this.setPreferredSize(new Dimension(30 * size.width(), 30 * size.height()));
 //            this.add(grid);
         }
         

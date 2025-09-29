@@ -313,16 +313,17 @@ public class Main {
     }
     
     private static void changeGame() {
-        var pack = frame.getSize().equals(frame.getPreferredSize());
+        var pack = (frame.getWidth() <= frame.getPreferredSize().width && frame.getHeight() <= frame.getPreferredSize().height);
         frame.remove(game);
         game = new MinsweeperGame(settings.size, solver_map.get(settings.solver), settings.texture);
         game.setAuto(settings.auto);
         frame.add(game);
         frame.setMinimumSize(new Dimension());
+        pack |= (frame.getWidth() <= frame.getPreferredSize().width && frame.getHeight() <= frame.getPreferredSize().height);
         if (pack) {
             frame.pack();
         }
-        frame.setMinimumSize(frame.getPreferredSize());
+        frame.setMinimumSize(game.getMinimumSize());
         frame.revalidate();
         saveSettings(settings_path);
     }
