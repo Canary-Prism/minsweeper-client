@@ -221,6 +221,7 @@ jobs:
           echo "Type=Application" >> "${NAME}.desktop"
           echo "Categories=Utility;" >> "${NAME}.desktop"
           cd ..
+          tree
           ~/appimagetool $NAME
           rm -rf $NAME
           mv "$(find . -type f)" "${NAME}-${VERSION}-x86_64.AppImage"
