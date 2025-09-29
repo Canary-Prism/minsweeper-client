@@ -51,8 +51,6 @@ public class MinsweeperGame extends JComponent {
     
     private final CounterView remaining_mines_counter, time_counter;
     
-    private final JLabel status_label, remaining_mines_label;
-    
     private final BoardView board;
     
     private boolean auto = false;
@@ -179,7 +177,6 @@ public class MinsweeperGame extends JComponent {
 
         c.gridx = 1;
         c.anchor = GridBagConstraints.WEST;
-        this.status_label = new JLabel("Status: Not Playing");
         this.remaining_mines_counter = new CounterView(max(
                 String.valueOf(size.mines()).length(),
                 String.valueOf(size.mines() - size.width() * size.height()).length()));
@@ -213,8 +210,6 @@ public class MinsweeperGame extends JComponent {
         c.gridx++;
         c.weightx = 1;
         c.anchor = GridBagConstraints.EAST;
-        this.remaining_mines_label = new JLabel("Mines: " + size.mines());
-        remaining_mines_label.setHorizontalAlignment(SwingConstants.RIGHT);
         this.time_counter = new CounterView(3);
         time_counter.setValue(0);
         this.add(time_counter, c);
@@ -315,23 +310,12 @@ public class MinsweeperGame extends JComponent {
     public void doLayout() {
         super.doLayout();
         
-        var status_str = switch (state.status()) {
-            case PLAYING -> "Playing";
-            case NEVER -> "Not Playing";
-            case LOST -> "Lost";
-            case WON -> "Won";
-        };
-        status_label.setText("Status: " + status_str);
         
         if (state.status() == GameStatus.WON)
             remaining_mines_counter.setValue(0);
         else
             remaining_mines_counter.setValue(state.remainingMines());
         
-        if (state.status() == GameStatus.WON)
-            remaining_mines_label.setText("Mines: 0");
-        else
-            remaining_mines_label.setText("Mines: " + state.remainingMines());
         repaint();
     }
     
