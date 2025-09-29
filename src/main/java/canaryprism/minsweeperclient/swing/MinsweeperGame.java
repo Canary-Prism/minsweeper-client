@@ -252,12 +252,12 @@ public class MinsweeperGame extends JComponent {
                 play_timer.cancel(true);
                 play_timer = null;
             }
-            time_counter.setValue(0);
         }
     }
     
     private void start() {
         endPlaying();
+        time_counter.setValue(0);
         state = minsweeper.start(solver);
         this.revalidate();
     }
