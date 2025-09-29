@@ -87,16 +87,13 @@ public class MinsweeperGame extends JComponent {
     public MinsweeperGame(BoardSize size, Solver solver, Texture theme) {
         this.size = size;
         this.solver = solver;
-        this.minsweeper = new Minsweeper(size, () -> endPlaying(), () -> endPlaying());
+        this.minsweeper = new Minsweeper(size, this::endPlaying, this::endPlaying);
         this.theme = theme;
         
         this.setOpaque(true);
         reloadBackground();
         
         
-        
-//        this.setLayout(new BorderLayout());
-//        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setLayout(new GridBagLayout());
 //        var panel = new JPanel(new GridBagLayout());
         var c = new GridBagConstraints();
@@ -233,10 +230,6 @@ public class MinsweeperGame extends JComponent {
         this.setBackground(getBackgroundColor());
     }
     
-    public Texture getTheme() {
-        return theme;
-    }
-    
     public MinsweeperGame setTheme(Texture theme) {
         this.theme = theme;
         image_map.clear();
@@ -297,7 +290,7 @@ public class MinsweeperGame extends JComponent {
                         revalidate();
                         try {
                             Thread.sleep(10);
-                        } catch (InterruptedException e) {
+                        } catch (InterruptedException _) {
                         }
                     } else break;
                 }
@@ -329,13 +322,13 @@ public class MinsweeperGame extends JComponent {
     
     class BoardView extends JComponent {
         
+        public static final int CELL_SIZE = 30;
+        
         record Point(int x, int y) {}
         
         private final Map<Point, CellView> cells = new HashMap<>();
         
         BoardView() {
-            this.setFont(Font.decode("Menlo").deriveFont(32f));
-            
 //            var constraints = new GridBagConstraints();
             
             for (int y = 0; y < size.height(); y++)
@@ -380,7 +373,7 @@ public class MinsweeperGame extends JComponent {
                         }
                     });
                     
-                    component.addActionListener((e) -> {
+                    component.addActionListener((_) -> {
                         state = minsweeper.leftClick(point.x, point.y);
                         if (state.status() == GameStatus.PLAYING)
                             triggerPlaying();
@@ -401,16 +394,11 @@ public class MinsweeperGame extends JComponent {
                         }
                     });
                     
-//                    component.setBorder(new LineBorder(Color.BLACK));
-                    
-//                    constraints.gridx = point.x;
-//                    constraints.gridy = point.y;
-                    
                     this.add(component);
                     cells.put(point, component);
                 }
             
-            this.setPreferredSize(new Dimension(30 * size.width(), 30 * size.height()));
+            this.setPreferredSize(new Dimension(CELL_SIZE * size.width(), CELL_SIZE * size.height()));
 //            this.add(grid);
         }
         
@@ -457,7 +445,7 @@ public class MinsweeperGame extends JComponent {
                 
                 this.setFocusable(false);
                 this.setBorderPainted(false);
-                this.setPreferredSize(new Dimension(30, 30));
+                this.setPreferredSize(new Dimension(CELL_SIZE, CELL_SIZE));
             }
             
             @Override
@@ -612,19 +600,8 @@ public class MinsweeperGame extends JComponent {
             return value;
         }
         
-        //        @Override
-//        protected void paintComponent(Graphics g) {
-//            super.paintComponent(g);
-//
-//            var x = 0;
-//            for (var image : images) {
-//                g.drawImage(image, x, 0, DIGIT_WIDTH, DIGIT_HEIGHT, null);
-//                x += DIGIT_WIDTH;
-//            }
-//        }
-        
         class DigitView extends JComponent {
-            private char value;
+            
             private Image image;
             
             DigitView() {
@@ -632,12 +609,7 @@ public class MinsweeperGame extends JComponent {
                 this.setMinimumSize(this.getPreferredSize());
             }
             
-            public char getValue() {
-                return value;
-            }
-            
             public DigitView setValue(char value) {
-                this.value = value;
                 this.image = getAsset("counter/counter" + value);
                 repaint();
                 return this;
@@ -653,11 +625,13 @@ public class MinsweeperGame extends JComponent {
     
     class RestartButton extends JButton {
         
+        public static final int SIZE = 50;
+        
         RestartButton() {
             
             this.setFocusable(true);
             this.setBorderPainted(false);
-            this.setPreferredSize(new Dimension(50, 50));
+            this.setPreferredSize(new Dimension(SIZE, SIZE));
             this.setMinimumSize(this.getPreferredSize());
         }
         
