@@ -19,14 +19,17 @@ package canaryprism.minsweeperclient.swing;
 import canaryprism.minsweeper.*;
 import canaryprism.minsweeper.solver.Move;
 import canaryprism.minsweeper.solver.Solver;
+import com.github.weisj.darklaf.listener.AncestorAdapter;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.ImageTranscoder;
 
 import javax.swing.*;
+import javax.swing.event.AncestorEvent;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.*;
@@ -92,13 +95,7 @@ public class MinsweeperGame extends JComponent {
         this.setOpaque(true);
         reloadBackground();
         
-        this.addContainerListener(new ContainerAdapter() {
-            @Override
-            public void componentAdded(ContainerEvent e) {
-                super.componentAdded(e);
-                requestFocusInWindow();
-            }
-        });
+        
         
 //        this.setLayout(new BorderLayout());
 //        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -194,6 +191,13 @@ public class MinsweeperGame extends JComponent {
         c.weightx = 0;
         c.anchor = GridBagConstraints.CENTER;
         var start_button = new RestartButton();
+        this.addAncestorListener(new AncestorAdapter() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                start_button.requestFocusInWindow();
+                super.ancestorAdded(event);
+            }
+        });
         start_button.addActionListener((_) -> start());
         this.add(start_button, c);
         
