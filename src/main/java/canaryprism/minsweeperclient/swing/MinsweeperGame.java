@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.stream.Stream;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -54,6 +55,7 @@ public class MinsweeperGame extends JComponent {
     private final BoardView board;
     
     private boolean auto = false;
+    private boolean flag_chord = false;
     
     private volatile Texture theme;
     
@@ -273,6 +275,12 @@ public class MinsweeperGame extends JComponent {
     public void setAuto(boolean auto) {
         this.auto = auto;
     }
+    
+    public MinsweeperGame setFlagChord(boolean flag_chord) {
+        this.flag_chord = flag_chord;
+        return this;
+    }
+    
     private final ForkJoinPool pool = new ForkJoinPool(1);
     private void auto() {
         if (!auto) {
@@ -328,6 +336,17 @@ public class MinsweeperGame extends JComponent {
         
         private final Map<Point, CellView> cells = new HashMap<>();
         
+        private Stream<Point> neighbours(Point point) {
+            var builder = Stream.<Point>builder();
+            for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
+                for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
+                    if (!(x3 == point.x && y3 == point.y))
+                        builder.add(new Point(x3, y3));
+                }
+            }
+            return builder.build();
+        }
+        
         BoardView() {
 //            var constraints = new GridBagConstraints();
             
@@ -374,6 +393,21 @@ public class MinsweeperGame extends JComponent {
                     });
                     
                     component.addActionListener((_) -> {
+                        if (flag_chord
+                            && state.board().get(point.x, point.y) instanceof Cell.Revealed(var n)
+                            && neighbours(point)
+                                    .map((e) -> state.board().get(e.x, e.y))
+                                    .filter((cell) ->
+                                            cell instanceof Cell.Unknown
+                                            || cell instanceof Cell.MarkedMine)
+                                    .count() == n) {
+                            neighbours(point)
+                                    .filter((e) -> state.board().get(e.x, e.y) instanceof Cell.Unknown)
+                                    .forEach((e) -> {
+                                        state = minsweeper.toggleFlag(e.x, e.y);
+                                    });
+                            return;
+                        }
                         state = minsweeper.leftClick(point.x, point.y);
                         if (state.status() == GameStatus.PLAYING)
                             triggerPlaying();
