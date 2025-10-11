@@ -45,7 +45,7 @@ public class MinsweeperGame extends JComponent {
     private final BoardSize size;
     private final Solver solver;
     
-    private final Minsweeper minsweeper;
+    private final canaryprism.minsweeper.MinsweeperGame minsweeper;
     
     private volatile GameState state;
     
@@ -89,7 +89,7 @@ public class MinsweeperGame extends JComponent {
     public MinsweeperGame(BoardSize size, Solver solver, Texture theme) {
         this.size = size;
         this.solver = solver;
-        this.minsweeper = new Minsweeper(size, this::endPlaying, this::endPlaying);
+        this.minsweeper = new canaryprism.minsweeper.MinsweeperGame(size, this::endPlaying, this::endPlaying);
         this.theme = theme;
         
         this.setOpaque(true);
@@ -379,10 +379,10 @@ public class MinsweeperGame extends JComponent {
                         }
                         
                         void update() {
-                            if (state.board().get(point.x, point.y) instanceof Cell.Revealed) {
+                            if (state.board().get(point.x, point.y).state() == CellState.REVEALED) {
                                 for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
                                     for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
-                                        if (state.board().get(x3, y3) instanceof Cell.Unknown || !component.getModel().isArmed()) {
+                                        if (state.board().get(x3, y3).state() == CellState.UNKNOWN || !component.getModel().isArmed()) {
                                             cells.get(new Point(x3, y3)).getModel().setArmed(component.getModel().isArmed());
                                         }
                                     }
@@ -393,20 +393,24 @@ public class MinsweeperGame extends JComponent {
                     });
                     
                     component.addActionListener((_) -> {
-                        if (flag_chord
-                            && state.board().get(point.x, point.y) instanceof Cell.Revealed(var n)
-                            && neighbours(point)
+                        System.out.println(state.board().get(point.x, point.y));
+                        try {
+                            
+                            if (flag_chord
+                                    && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
+                                    && neighbours(point)
                                     .map((e) -> state.board().get(e.x, e.y))
-                                    .filter((cell) ->
-                                            cell instanceof Cell.Unknown
-                                            || cell instanceof Cell.MarkedMine)
+                                    .filter((cell) -> cell.type() instanceof CellType.Unknown)
                                     .count() == n) {
-                            neighbours(point)
-                                    .filter((e) -> state.board().get(e.x, e.y) instanceof Cell.Unknown)
-                                    .forEach((e) -> {
-                                        state = minsweeper.toggleFlag(e.x, e.y);
-                                    });
-                            return;
+                                neighbours(point)
+                                        .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
+                                        .forEach((e) -> {
+                                            state = minsweeper.setFlagged(e.x, e.y, true);
+                                        });
+                                return;
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                         state = minsweeper.leftClick(point.x, point.y);
                         if (state.status() == GameStatus.PLAYING)
@@ -487,20 +491,20 @@ public class MinsweeperGame extends JComponent {
                 var g = ((Graphics2D) g1);
                 var cell = state.board().get(point.x, point.y);
                 
-                var file_name = "cell/" + switch (cell) {
-                    case Cell.Revealed(var number) when number == 0 -> "celldown";
-                    case Cell.Revealed(var number) -> "cell" + number;
-                    case Cell.Unknown _ -> {
-//                                    System.out.println("unknown cell repaint with armed: " + getModel().isArmed());
+                var file_name = "cell/" + switch (cell.state()) {
+                    case UNKNOWN -> {
                         if (getModel().isArmed())
                             yield "celldown";
                         else
                             yield "cellup";
                     }
-                    case Cell.MarkedMine _ -> "cellflag";
-                    case Cell.Mine _ -> "cellmine";
-                    case Cell.FalseMine _ -> "falsemine";
-                    case Cell.ExplodedMine _ -> "blast";
+                    case REVEALED -> switch (cell.type()) {
+                        case CellType.Safe(var number) when number == 0 -> "celldown";
+                        case CellType.Safe(var number) -> "cell" + number;
+                        case CellType.Mine _ -> "blast";
+                        default -> throw new IllegalArgumentException();
+                    };
+                    case FLAGGED -> "cellflag";
                 };
                 
                 var image = getAsset(file_name);
