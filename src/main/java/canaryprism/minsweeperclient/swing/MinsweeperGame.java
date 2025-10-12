@@ -32,6 +32,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.lang.ref.Cleaner;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
@@ -91,6 +92,12 @@ public class MinsweeperGame extends JComponent {
         this.solver = solver;
         this.minsweeper = new canaryprism.minsweeper.MinsweeperGame(size, this::endPlaying, this::endPlaying);
         this.theme = theme;
+        
+        {
+            var cleaner = Cleaner.create();
+            var ex = this.ex;
+            cleaner.register(this, ex::shutdown);
+        }
         
         this.setOpaque(true);
         reloadBackground();
@@ -242,7 +249,7 @@ public class MinsweeperGame extends JComponent {
     
     private volatile boolean playing;
     private volatile ScheduledFuture<?> play_timer;
-    private static final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor();
     
     private void triggerPlaying() {
         if (!playing) {
