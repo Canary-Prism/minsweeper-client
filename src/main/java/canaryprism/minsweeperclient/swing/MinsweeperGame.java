@@ -405,7 +405,6 @@ public class MinsweeperGame extends JComponent {
                     });
                     
                     component.addActionListener((_) -> {
-                        System.out.println(state.board().get(point.x, point.y));
                         try {
                             
                             if (flag_chord
