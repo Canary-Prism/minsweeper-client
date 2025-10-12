@@ -407,6 +407,8 @@ public class MinsweeperGame extends JComponent {
                                         .forEach((e) -> {
                                             state = minsweeper.setFlagged(e.x, e.y, true);
                                         });
+                                
+                                MinsweeperGame.this.revalidate();
                                 return;
                             }
                         } catch (Exception e) {
