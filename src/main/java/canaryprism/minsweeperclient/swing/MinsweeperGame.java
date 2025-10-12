@@ -257,6 +257,11 @@ public class MinsweeperGame extends JComponent {
             play_timer = ex.scheduleAtFixedRate(() -> {
                 if (time_counter.getValue() != 1000 - 1) {
                     time_counter.setValue(time_counter.getValue() + 1);
+                } else {
+                    if (play_timer != null) {
+                        play_timer.cancel(true);
+                        play_timer = null;
+                    }
                 }
             }, 1, 1, TimeUnit.SECONDS);
         }
