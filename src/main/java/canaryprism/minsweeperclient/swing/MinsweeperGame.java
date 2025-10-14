@@ -249,7 +249,7 @@ public class MinsweeperGame extends JComponent {
     
     private volatile boolean playing;
     private volatile ScheduledFuture<?> play_timer;
-    private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().factory());
     
     private void triggerPlaying() {
         if (!playing) {
