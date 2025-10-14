@@ -96,7 +96,7 @@ public class MinsweeperGame extends JComponent {
         {
             var cleaner = Cleaner.create();
             var ex = this.ex;
-            cleaner.register(this, ex::shutdown);
+            cleaner.register(this, ex::shutdownNow);
         }
         
         this.setOpaque(true);
