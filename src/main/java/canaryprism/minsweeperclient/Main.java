@@ -36,7 +36,10 @@ import tools.jackson.databind.json.JsonMapper;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -340,6 +343,7 @@ public class Main {
         frame.setMinimumSize(game.getMinimumSize());
         frame.revalidate();
         saveSettings(settings_path);
+        System.gc();
     }
     
     private static void refreshTexture() {
