@@ -33,9 +33,11 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.Cleaner;
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static java.lang.Math.max;
@@ -248,31 +250,34 @@ public class MinsweeperGame extends JComponent {
     }
     
     private volatile boolean playing;
-    private volatile ScheduledFuture<?> play_timer;
+    private final AtomicReference<ScheduledFuture<?>> play_timer = new AtomicReference<>();
     private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().factory());
     
     private void triggerPlaying() {
         if (!playing) {
             playing = true;
-            play_timer = ex.scheduleAtFixedRate(() -> {
-                if (time_counter.getValue() != 1000 - 1) {
-                    time_counter.setValue(time_counter.getValue() + 1);
+            var play_timer = this.play_timer;
+            var time_counter_ref = new WeakReference<>(this.time_counter);
+            play_timer.set(ex.scheduleAtFixedRate(() -> {
+                if (time_counter_ref.get() instanceof CounterView counter
+                        && counter.getValue() != 1000 - 1) {
+                    counter.setValue(counter.getValue() + 1);
                 } else {
-                    if (play_timer != null) {
-                        play_timer.cancel(true);
-                        play_timer = null;
+                    if (play_timer.get() instanceof ScheduledFuture<?> timer) {
+                        timer.cancel(true);
+                        play_timer.set(null);
                     }
                 }
-            }, 1, 1, TimeUnit.SECONDS);
+            }, 1, 1, TimeUnit.SECONDS));
         }
     }
     
     private void endPlaying() {
         if (playing) {
             playing = false;
-            if (play_timer != null) {
-                play_timer.cancel(true);
-                play_timer = null;
+            if (play_timer.get() instanceof ScheduledFuture<?> timer) {
+                timer.cancel(true);
+                play_timer.set(null);
             }
         }
     }
