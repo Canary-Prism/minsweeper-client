@@ -396,11 +396,13 @@ public class MinsweeperGame extends JComponent {
                         }
                         
                         void update() {
+                            if (state.board().get(point.x, point.y).state() == CellState.UNKNOWN && state.status() == GameStatus.PLAYING)
+                                cells.get(point).setDown(component.getModel().isArmed());
                             if (state.board().get(point.x, point.y).state() == CellState.REVEALED) {
                                 for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
                                     for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
-                                        if (state.board().get(x3, y3).state() == CellState.UNKNOWN || !component.getModel().isArmed()) {
-                                            cells.get(new Point(x3, y3)).getModel().setArmed(component.getModel().isArmed());
+                                        if ((state.board().get(x3, y3).state() == CellState.UNKNOWN && state.status() == GameStatus.PLAYING) || !component.getModel().isArmed()) {
+                                            cells.get(new Point(x3, y3)).setDown(component.getModel().isArmed());
                                         }
                                     }
                                 }
@@ -496,6 +498,17 @@ public class MinsweeperGame extends JComponent {
         class CellView extends JButton {
             private final Point point;
             
+            private volatile boolean down;
+            
+            public boolean isDown() {
+                return down;
+            }
+            
+            public CellView setDown(boolean down) {
+                this.down = down;
+                return this;
+            }
+            
             CellView(Point point) {
                 this.point = point;
                 
@@ -511,7 +524,7 @@ public class MinsweeperGame extends JComponent {
                 
                 var file_name = "cell/" + switch (cell.state()) {
                     case UNKNOWN -> {
-                        if (getModel().isArmed())
+                        if (down)
                             yield "celldown";
                         else
                             yield "cellup";
@@ -697,7 +710,7 @@ public class MinsweeperGame extends JComponent {
             var file_name = "faces/";
             if (getModel().isArmed())
                 file_name += "smilefacedown";
-            else if (board.cells.values().stream().anyMatch((e) -> e.getModel().isArmed()))
+            else if (board.cells.values().stream().anyMatch(BoardView.CellView::isDown))
                 file_name += "clickface";
             else
                 file_name += switch (state.status()) {
