@@ -527,14 +527,9 @@ public class MinsweeperGame extends JComponent {
                         case CellType.Safe(var number) when number == 0 -> "celldown";
                         case CellType.Safe(var number) -> "cell" + number;
                         case CellType.Mine _ -> (cell.state() == CellState.REVEALED) ? "blast" : "cellmine";
-                        case CellType.Unknown _ -> {
-                            if (down)
-                                yield "celldown";
-                            else
-                                yield "cellup";
-                        }
+                        case CellType.Unknown _ -> (down) ? "celldown" : "cellup";
                     };
-                    case FLAGGED -> "cellflag";
+                    case FLAGGED -> (cell.type() instanceof CellType.Safe) ? "falsemine" : "cellflag";
                 };
                 
                 var image = getAsset(file_name);
