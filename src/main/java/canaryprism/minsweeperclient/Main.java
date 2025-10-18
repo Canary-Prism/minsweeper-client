@@ -33,6 +33,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -95,6 +96,10 @@ public class Main {
         System.setProperty("apple.awt.application.name", "Minsweeper");
         System.setProperty("apple.laf.useScreenMenuBar", "true");
         System.setProperty("apple.awt.application.appearance", "system");
+        
+        final var icon = ImageIO.read(Objects.requireNonNull(Main.class.getResource("/minsweeper/icon.png")));
+        if (Taskbar.isTaskbarSupported() && Taskbar.getTaskbar().isSupported(Taskbar.Feature.ICON_IMAGE))
+            Taskbar.getTaskbar().setIconImage(icon);
         
         var provider = ServiceLoader.load(Solver.class);
         for (var solver : provider) {

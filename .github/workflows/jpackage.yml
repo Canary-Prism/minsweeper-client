@@ -6,7 +6,7 @@ on:
     types: [ published ]
 env:
   JAVA_VERSION: "22"
-  ICON_PATH: ""
+  ICON_PATH: "icon.png"
 jobs:
   build_mac_arm64:
     name: "JPackage Build for Mac arm64"
