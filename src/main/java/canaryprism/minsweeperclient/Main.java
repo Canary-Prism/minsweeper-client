@@ -86,16 +86,16 @@ public class Main {
     
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         
+        System.setProperty("apple.awt.application.name", "Minsweeper");
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        System.setProperty("apple.awt.application.appearance", "system");
+        
         FlatDarkLaf.installLafInfo();
         FlatDarculaLaf.installLafInfo();
         FlatIntelliJLaf.installLafInfo();
         FlatLightLaf.installLafInfo();
         FlatMacDarkLaf.installLafInfo();
         FlatMacLightLaf.installLafInfo();
-        
-        System.setProperty("apple.awt.application.name", "Minsweeper");
-        System.setProperty("apple.laf.useScreenMenuBar", "true");
-        System.setProperty("apple.awt.application.appearance", "system");
         
         final var icon = ImageIO.read(Objects.requireNonNull(Main.class.getResource("/minsweeper/icon.png")));
         if (Taskbar.isTaskbarSupported() && Taskbar.getTaskbar().isSupported(Taskbar.Feature.ICON_IMAGE))
