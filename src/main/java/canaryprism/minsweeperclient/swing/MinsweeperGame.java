@@ -412,26 +412,19 @@ public class MinsweeperGame extends JComponent {
                     });
                     
                     component.addActionListener((_) -> {
-                        try {
-                            
-                            if (flag_chord
-                                    && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
-                                    && neighbours(point)
-                                    .map((e) -> state.board().get(e.x, e.y))
-                                    .filter((cell) -> cell.type() instanceof CellType.Unknown)
-                                    .count() == n) {
-                                neighbours(point)
-                                        .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
-                                        .forEach((e) -> {
-                                            state = minsweeper.setFlagged(e.x, e.y, true);
-                                        });
-                                
-                                MinsweeperGame.this.revalidate();
-                                return;
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        if (flag_chord
+                                && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
+                                && neighbours(point)
+                                .map((e) -> state.board().get(e.x, e.y))
+                                .filter((cell) -> cell.type() instanceof CellType.Unknown)
+                                .count() == n) {
+                            neighbours(point)
+                                    .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
+                                    .forEach((e) -> {
+                                        state = minsweeper.setFlagged(e.x, e.y, true);
+                                    });
                         }
+                        
                         state = minsweeper.leftClick(point.x, point.y);
                         if (state.status() == GameStatus.PLAYING)
                             triggerPlaying();
