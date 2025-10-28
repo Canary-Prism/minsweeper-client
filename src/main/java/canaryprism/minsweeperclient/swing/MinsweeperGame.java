@@ -516,11 +516,15 @@ public class MinsweeperGame extends JComponent {
                 var cell = state.board().get(point.x, point.y);
                 
                 var file_name = "cell/" + switch (cell.state()) {
-                    case REVEALED, UNKNOWN -> switch (cell.type()) {
+                    case REVEALED -> switch (cell.type()) {
                         case CellType.Safe(var number) when number == 0 -> "celldown";
                         case CellType.Safe(var number) -> "cell" + number;
-                        case CellType.Mine _ -> (cell.state() == CellState.REVEALED) ? "blast" : "cellmine";
+                        case CellType.Mine _ -> "blast";
                         case CellType.Unknown _ -> (down) ? "celldown" : "cellup";
+                    };
+                    case UNKNOWN -> switch (cell.type()) {
+                        case CellType.Mine _ -> "cellmine";
+                        default -> (down) ? "celldown" : "cellup";
                     };
                     case FLAGGED -> (cell.type() instanceof CellType.Safe) ? "falsemine" : "cellflag";
                 };
