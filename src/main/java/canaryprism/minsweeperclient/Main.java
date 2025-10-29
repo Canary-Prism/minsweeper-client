@@ -274,7 +274,7 @@ public class Main {
         var solver_loader = ServiceLoader.load(Solver.class);
         var solver_button_group = new ButtonGroup();
         for (var solver : solver_loader) {
-            var button = new JRadioButtonMenuItem(solver.getClass().getName());
+            var button = new JRadioButtonMenuItem(solver.getName());
             if (settings.solver == solver.getClass())
                 button.setSelected(true);
             button.addItemListener((e) -> {

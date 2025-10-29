@@ -307,7 +307,7 @@ public class MinsweeperGame extends JComponent {
             while (state.status() == GameStatus.PLAYING) {
                 var move = solver.solve(state);
                 synchronized (this) {
-                    if (move instanceof Move(Move.Point(var x, var y), var action)) {
+                    if (move instanceof Move(Move.Point(var x, var y), var action, var _)) {
                         switch (action) {
                             case LEFT -> this.state = minsweeper.leftClick(x, y);
                             case RIGHT -> this.state = minsweeper.rightClick(x, y);
