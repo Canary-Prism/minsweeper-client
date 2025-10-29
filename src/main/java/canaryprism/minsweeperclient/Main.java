@@ -317,8 +317,8 @@ public class Main {
         cheats_menu.add(flag_chord_checkbox);
         
         var hover_chord_checkbox = new JCheckBoxMenuItem("Hover Chord");
-        hover_chord_checkbox.setMnemonic(KeyEvent.VK_H);
-        hover_chord_checkbox.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, modifier_key));
+        hover_chord_checkbox.setMnemonic(KeyEvent.VK_G);
+        hover_chord_checkbox.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, modifier_key));
         hover_chord_checkbox.setSelected(settings.hover_chord);
         hover_chord_checkbox.addItemListener((e) -> {
             settings.hover_chord = (e.getStateChange() == ItemEvent.SELECTED);
