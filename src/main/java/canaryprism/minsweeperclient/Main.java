@@ -61,6 +61,7 @@ public class Main {
         
         public volatile boolean auto = false;
         public volatile boolean flag_chord = false;
+        public volatile boolean hover_chord = false;
         public volatile BoardSize size = ConventionalSize.BEGINNER.size;
         public volatile Class<? extends Solver> solver = Solver.getDefault().getClass();
         public volatile Texture texture = Texture.LIGHT;
@@ -315,6 +316,17 @@ public class Main {
         
         cheats_menu.add(flag_chord_checkbox);
         
+        var hover_chord_checkbox = new JCheckBoxMenuItem("Hover Chord");
+        hover_chord_checkbox.setMnemonic(KeyEvent.VK_H);
+        hover_chord_checkbox.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, modifier_key));
+        hover_chord_checkbox.setSelected(settings.hover_chord);
+        hover_chord_checkbox.addItemListener((e) -> {
+            settings.hover_chord = (e.getStateChange() == ItemEvent.SELECTED);
+            game.setHoverChord(settings.hover_chord);
+        });
+        
+        cheats_menu.add(hover_chord_checkbox);
+        
         
         menu_bar.add(cheats_menu);
         
@@ -339,6 +351,7 @@ public class Main {
         game = new MinsweeperGame(settings.size, solver_map.get(settings.solver), settings.texture);
         game.setAuto(settings.auto);
         game.setFlagChord(settings.flag_chord);
+        game.setHoverChord(settings.hover_chord);
         frame.add(game);
         frame.setMinimumSize(new Dimension());
         pack |= (frame.getWidth() <= frame.getPreferredSize().width && frame.getHeight() <= frame.getPreferredSize().height);

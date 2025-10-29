@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static java.lang.Math.max;
@@ -59,6 +60,7 @@ public class MinsweeperGame extends JComponent {
     
     private boolean auto = false;
     private boolean flag_chord = false;
+    private boolean hover_chord = false;
     
     private volatile Texture theme;
     
@@ -298,6 +300,11 @@ public class MinsweeperGame extends JComponent {
         return this;
     }
     
+    public MinsweeperGame setHoverChord(boolean hover_chord) {
+        this.hover_chord = hover_chord;
+        return this;
+    }
+    
     private final ForkJoinPool pool = new ForkJoinPool(1);
     private void auto() {
         if (!auto) {
@@ -373,6 +380,27 @@ public class MinsweeperGame extends JComponent {
                     
                     var component = new CellView(point);
                     
+                    Consumer<Object> click_action = (_) -> {
+                        if (flag_chord
+                                && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
+                                && neighbours(point)
+                                .map((e) -> state.board().get(e.x, e.y))
+                                .filter((cell) -> cell.type() instanceof CellType.Unknown)
+                                .count() == n) {
+                            neighbours(point)
+                                    .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
+                                    .forEach((e) -> {
+                                        state = minsweeper.setFlagged(e.x, e.y, true);
+                                    });
+                        }
+                        
+                        state = minsweeper.leftClick(point.x, point.y);
+                        if (state.status() == GameStatus.PLAYING)
+                            triggerPlaying();
+                        BoardView.this.revalidate();
+                        Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                    };
+                    
 //                    component.setModel(new DefaultButtonModel());
 
                     component.addMouseListener(new MouseAdapter() {
@@ -388,6 +416,10 @@ public class MinsweeperGame extends JComponent {
                         @Override
                         public void mouseEntered(MouseEvent e) {
                             update();
+                            if (hover_chord && state.status() == GameStatus.PLAYING
+                                    && state.board().get(point.x, point.y).type() instanceof CellType.Safe) {
+                                click_action.accept(null);
+                            }
                         }
                         
                         @Override
@@ -411,26 +443,7 @@ public class MinsweeperGame extends JComponent {
                         }
                     });
                     
-                    component.addActionListener((_) -> {
-                        if (flag_chord
-                                && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
-                                && neighbours(point)
-                                .map((e) -> state.board().get(e.x, e.y))
-                                .filter((cell) -> cell.type() instanceof CellType.Unknown)
-                                .count() == n) {
-                            neighbours(point)
-                                    .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
-                                    .forEach((e) -> {
-                                        state = minsweeper.setFlagged(e.x, e.y, true);
-                                    });
-                        }
-                        
-                        state = minsweeper.leftClick(point.x, point.y);
-                        if (state.status() == GameStatus.PLAYING)
-                            triggerPlaying();
-                        BoardView.this.revalidate();
-                        Thread.ofVirtual().start(MinsweeperGame.this::auto);
-                    });
+                    component.addActionListener(click_action::accept);
                     
                     component.addMouseListener(new MouseAdapter() {
 
