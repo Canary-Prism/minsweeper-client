@@ -50,7 +50,7 @@ import java.util.stream.Stream;
 
 public class Main {
     
-    private static final ProjectDirectories dirs = ProjectDirectories.from("", "canaryprism", "minsweeper-client");
+    private static final ProjectDirectories DIRS = ProjectDirectories.from("", "canaryprism", "minsweeper-client");
     private static final ObjectMapper mapper = JsonMapper.shared();
     
     private static JFrame frame;
@@ -107,7 +107,7 @@ public class Main {
             solver_map.put(solver.getClass(), solver);
         }
         
-        var save_path = Path.of(dirs.dataLocalDir);
+        var save_path = Path.of(DIRS.dataLocalDir);
         if (!Files.isDirectory(save_path)) {
             Files.createDirectories(save_path);
         }
@@ -117,6 +117,8 @@ public class Main {
         try {
             loadSettings(settings_path);
         } catch (JacksonException e) {
+            // i'll fix it later :p
+            //noinspection CallToPrintStackTrace
             e.printStackTrace();
             settings = new Settings();
         }
@@ -180,7 +182,7 @@ public class Main {
         var intermediate_size = size_menu.add("Intermediate");
         intermediate_size.setMnemonic(KeyEvent.VK_I);
         intermediate_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, modifier_key));
-        intermediate_size.addActionListener((e) -> {
+        intermediate_size.addActionListener((_) -> {
             settings.size = ConventionalSize.INTERMEDIATE.size;
             changeGame();
         });
@@ -188,7 +190,7 @@ public class Main {
         var expert_size = size_menu.add("Expert");
         expert_size.setMnemonic(KeyEvent.VK_E);
         expert_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, modifier_key));
-        expert_size.addActionListener((e) -> {
+        expert_size.addActionListener((_) -> {
             settings.size = ConventionalSize.EXPERT.size;
             changeGame();
         });
@@ -330,9 +332,7 @@ public class Main {
         var hint_button = cheats_menu.add("Hint");
         hint_button.setMnemonic(KeyEvent.VK_H);
         hint_button.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, modifier_key));
-        hint_button.addActionListener((_) -> {
-            game.hint();
-        });
+        hint_button.addActionListener((_) -> game.hint());
         
         
         menu_bar.add(cheats_menu);
@@ -439,7 +439,7 @@ public class Main {
                 
                 panel.setBorder(new EmptyBorder(5, 5, 5, 5));
                 
-                future = new CompletableFuture<BoardSize>();
+                future = new CompletableFuture<>();
                 
                 done_button.addActionListener((_) -> {
                     try {

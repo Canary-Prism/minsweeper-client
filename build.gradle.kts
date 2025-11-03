@@ -44,6 +44,7 @@ dependencies {
 
     implementation("io.github.canary-prism:minsweeper-java:4.0.0")
     implementation("org.apache.xmlgraphics:batik-swing:1.18")
+    implementation("commons-io:commons-io:2.14.0")
     implementation("org.apache.xmlgraphics:batik-transcoder:1.18")
 
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
