@@ -17,7 +17,9 @@
 package canaryprism.minsweeperclient.swing;
 
 import canaryprism.minsweeper.*;
+import canaryprism.minsweeper.solver.Logic;
 import canaryprism.minsweeper.solver.Move;
+import canaryprism.minsweeper.solver.Reason;
 import canaryprism.minsweeper.solver.Solver;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.Math.max;
@@ -235,8 +238,21 @@ public class MinsweeperGame extends JComponent {
         c.gridwidth = 3;
         c.fill = GridBagConstraints.BOTH;
         c.weightx = c.weighty = 1;
+        
+        var center_panel = new JPanel(new BorderLayout());
+        center_panel.setBackground(null);
+        
         this.board = new BoardView();
-        this.add(board, c);
+        
+        center_panel.add(board, BorderLayout.CENTER);
+        
+        hint_component.setLayout(new BorderLayout());
+        hint_component.setBackground(null);
+//        hint_component.setOpaque(true);
+        
+        center_panel.add(hint_component, BorderLayout.SOUTH);
+        
+        this.add(center_panel, c);
     }
     
     private void reloadBackground() {
@@ -303,6 +319,50 @@ public class MinsweeperGame extends JComponent {
     public MinsweeperGame setHoverChord(boolean hover_chord) {
         this.hover_chord = hover_chord;
         return this;
+    }
+    
+    private final JComponent hint_component = new JPanel();
+    
+    public void hint() {
+        if (solver.solve(state) instanceof Move(Move.Point(var x, var y), var action, var opt_reason)) {
+            var target = board.cells.get(new BoardView.Point(x, y));
+            var related = opt_reason
+                    .map(Reason::related)
+                    .orElse(Set.of())
+                    .stream()
+                    .map((e) -> new BoardView.Point(e.x(), e.y()))
+                    .map(board.cells::get)
+                    .collect(Collectors.toSet());
+            var logic = opt_reason
+                    .map(Reason::logic)
+                    .map(Logic::getDescription)
+                    .orElse("no logic provided");
+            
+            related.forEach((e) -> e.setOverlay(new Color(0x8000FFFF, true)));
+            target.setOverlay((action == Move.Click.LEFT) ? new Color(0x8000FF00, true) : new Color(0x80FF0000, true));
+
+//                this.add(hint_component, hint_constraints);
+            
+            var component = new JComponent() {
+//                    @Override
+//                    public Dimension getMinimumSize() {
+//                        return this.getPreferredSize();
+//                    }
+            };
+            
+            hint_component.add(component);
+            
+            JOptionPane.showInternalMessageDialog(component, logic);
+            
+            hint_component.remove(component);
+
+//                this.remove(hint_component);
+            
+            related.forEach((e) -> e.setOverlay(null));
+            target.setOverlay(null);
+            revalidate();
+            
+        }
     }
     
     private final ForkJoinPool pool = new ForkJoinPool(1);
@@ -505,12 +565,20 @@ public class MinsweeperGame extends JComponent {
             
             private volatile boolean down;
             
+            private volatile Color overlay;
+            
             public boolean isDown() {
                 return down;
             }
             
             public CellView setDown(boolean down) {
                 this.down = down;
+                return this;
+            }
+            
+            public CellView setOverlay(Color overlay) {
+                this.overlay = overlay;
+                this.repaint();
                 return this;
             }
             
@@ -546,6 +614,11 @@ public class MinsweeperGame extends JComponent {
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
                 g.drawImage(image, 0, 0, this.getWidth(), this.getHeight(), null);
+                
+                if (overlay instanceof Color color) {
+                    g.setColor(color);
+                    g.fillRect(0, 0, this.getWidth(), this.getHeight());
+                }
             }
         }
     }

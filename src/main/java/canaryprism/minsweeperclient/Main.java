@@ -327,6 +327,13 @@ public class Main {
         
         cheats_menu.add(hover_chord_checkbox);
         
+        var hint_button = cheats_menu.add("Hint");
+        hint_button.setMnemonic(KeyEvent.VK_H);
+        hint_button.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, modifier_key));
+        hint_button.addActionListener((_) -> {
+            game.hint();
+        });
+        
         
         menu_bar.add(cheats_menu);
         
