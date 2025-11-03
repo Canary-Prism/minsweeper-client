@@ -321,6 +321,7 @@ public class MinsweeperGame extends JComponent {
                         }
                         revalidate();
                         try {
+                            //noinspection BusyWait
                             Thread.sleep(10);
                         } catch (InterruptedException _) {
                         }
@@ -389,9 +390,7 @@ public class MinsweeperGame extends JComponent {
                                 .count() == n) {
                             neighbours(point)
                                     .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
-                                    .forEach((e) -> {
-                                        state = minsweeper.setFlagged(e.x, e.y, true);
-                                    });
+                                    .forEach((e) -> state = minsweeper.setFlagged(e.x, e.y, true));
                         }
                         
                         state = minsweeper.leftClick(point.x, point.y);
