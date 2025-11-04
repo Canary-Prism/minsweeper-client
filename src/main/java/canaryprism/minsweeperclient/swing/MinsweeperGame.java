@@ -324,8 +324,8 @@ public class MinsweeperGame extends JComponent {
     private final JComponent hint_component = new JPanel();
     
     public void hint() {
-        if (solver.solve(state) instanceof Move(Move.Point(var x, var y), var action, var opt_reason)) {
-            var target = board.cells.get(new BoardView.Point(x, y));
+        if (solver.solve(state) instanceof Move(var clicks, var opt_reason)) {
+//            var target = board.cells.get(new BoardView.Point(x, y));
             var related = opt_reason
                     .map(Reason::related)
                     .orElse(Set.of())
@@ -339,7 +339,12 @@ public class MinsweeperGame extends JComponent {
                     .orElse("no logic provided");
             
             related.forEach((e) -> e.setOverlay(new Color(0x8000FFFF, true)));
-            target.setOverlay((action == Move.Click.LEFT) ? new Color(0x8000FF00, true) : new Color(0x80FF0000, true));
+            clicks.forEach((e) ->
+                    board.cells.get(
+                            new BoardView.Point(e.point().x(), e.point().y()))
+                            .setOverlay((e.action() == Move.Action.LEFT) ?
+                                    new Color(0x8000FF00, true) : new Color(0x80FF0000, true)));
+//            target.setOverlay((action == Move.Click.LEFT) ? new Color(0x8000FF00, true) : new Color(0x80FF0000, true));
 
 //                this.add(hint_component, hint_constraints);
             
@@ -359,7 +364,11 @@ public class MinsweeperGame extends JComponent {
 //                this.remove(hint_component);
             
             related.forEach((e) -> e.setOverlay(null));
-            target.setOverlay(null);
+            clicks.forEach((e) ->
+                    board.cells.get(
+                                    new BoardView.Point(e.point().x(), e.point().y()))
+                            .setOverlay(null));
+//            target.setOverlay(null);
             revalidate();
             
         }
@@ -374,11 +383,12 @@ public class MinsweeperGame extends JComponent {
             while (state.status() == GameStatus.PLAYING) {
                 var move = solver.solve(state);
                 synchronized (this) {
-                    if (move instanceof Move(Move.Point(var x, var y), var action, var _)) {
-                        switch (action) {
-                            case LEFT -> this.state = minsweeper.leftClick(x, y);
-                            case RIGHT -> this.state = minsweeper.rightClick(x, y);
-                        }
+                    if (move instanceof Move(var clicks, var _)) {
+                        for (var click : clicks)
+                            switch (click.action()) {
+                                case LEFT -> this.state = minsweeper.leftClick(click.point().x(), click.point().y());
+                                case RIGHT -> this.state = minsweeper.rightClick(click.point().x(), click.point().y());
+                            }
                         revalidate();
                         try {
                             //noinspection BusyWait

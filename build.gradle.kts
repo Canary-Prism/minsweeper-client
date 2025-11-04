@@ -42,7 +42,7 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 
-    implementation("io.github.canary-prism:minsweeper-java:4.0.0")
+    implementation("io.github.canary-prism:minsweeper-java:5.0.1")
     implementation("org.apache.xmlgraphics:batik-swing:1.18")
     implementation("commons-io:commons-io:2.14.0")
     implementation("org.apache.xmlgraphics:batik-transcoder:1.18")
