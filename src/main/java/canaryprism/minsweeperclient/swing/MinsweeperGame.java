@@ -322,8 +322,12 @@ public class MinsweeperGame extends JComponent {
     }
     
     private final JComponent hint_component = new JPanel();
+    private volatile boolean hinting = false;
     
     public void hint() {
+        if (hinting)
+            return;
+        hinting = true;
         if (solver.solve(state) instanceof Move(var clicks, var opt_reason)) {
 //            var target = board.cells.get(new BoardView.Point(x, y));
             var related = opt_reason
@@ -372,6 +376,7 @@ public class MinsweeperGame extends JComponent {
             revalidate();
             
         }
+        hinting = false;
     }
     
     private final ForkJoinPool pool = new ForkJoinPool(1);
