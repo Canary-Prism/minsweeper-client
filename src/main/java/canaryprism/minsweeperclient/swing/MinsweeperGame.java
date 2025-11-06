@@ -47,7 +47,7 @@ import java.util.stream.Stream;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
-public class MinsweeperGame extends JComponent {
+public class MinsweeperGame extends JComponent implements AutoCloseable {
     
     private final BoardSize size;
     private final Solver solver;
@@ -300,9 +300,15 @@ public class MinsweeperGame extends JComponent {
         }
     }
     
+    private volatile ExecutorService clicker = Executors.newSingleThreadExecutor();
+    private volatile Point clickdown;
+    
     private void start() {
         endPlaying();
         time_counter.setValue(0);
+        clicker.shutdownNow();
+        clicker = Executors.newSingleThreadExecutor();
+        clickdown = null;
         state = minsweeper.start(solver);
         this.revalidate();
     }
@@ -334,7 +340,7 @@ public class MinsweeperGame extends JComponent {
                     .map(Reason::related)
                     .orElse(Set.of())
                     .stream()
-                    .map((e) -> new BoardView.Point(e.x(), e.y()))
+                    .map((e) -> new Point(e.x(), e.y()))
                     .map(board.cells::get)
                     .collect(Collectors.toSet());
             var logic = opt_reason
@@ -345,7 +351,7 @@ public class MinsweeperGame extends JComponent {
             related.forEach((e) -> e.setOverlay(new Color(0x8000FFFF, true)));
             clicks.forEach((e) ->
                     board.cells.get(
-                            new BoardView.Point(e.point().x(), e.point().y()))
+                            new Point(e.point().x(), e.point().y()))
                             .setOverlay((e.action() == Move.Action.LEFT) ?
                                     new Color(0x8000FF00, true) : new Color(0x80FF0000, true)));
 //            target.setOverlay((action == Move.Click.LEFT) ? new Color(0x8000FF00, true) : new Color(0x80FF0000, true));
@@ -370,7 +376,7 @@ public class MinsweeperGame extends JComponent {
             related.forEach((e) -> e.setOverlay(null));
             clicks.forEach((e) ->
                     board.cells.get(
-                                    new BoardView.Point(e.point().x(), e.point().y()))
+                                    new Point(e.point().x(), e.point().y()))
                             .setOverlay(null));
 //            target.setOverlay(null);
             revalidate();
@@ -428,20 +434,25 @@ public class MinsweeperGame extends JComponent {
         g.fillRect(0, 0, this.getWidth(), this.getHeight());
     }
     
+    @Override
+    public void close() {
+        ex.shutdownNow();
+        clicker.shutdownNow();
+    }
+    record Point(int x, int y) {}
+    
     class BoardView extends JComponent {
         
         public static final int CELL_SIZE = 30;
         
-        record Point(int x, int y) {}
+        private final Map<MinsweeperGame.Point, CellView> cells = new HashMap<>();
         
-        private final Map<Point, CellView> cells = new HashMap<>();
-        
-        private Stream<Point> neighbours(Point point) {
-            var builder = Stream.<Point>builder();
+        private Stream<MinsweeperGame.Point> neighbours(MinsweeperGame.Point point) {
+            var builder = Stream.<MinsweeperGame.Point>builder();
             for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
                 for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
                     if (!(x3 == point.x && y3 == point.y))
-                        builder.add(new Point(x3, y3));
+                        builder.add(new MinsweeperGame.Point(x3, y3));
                 }
             }
             return builder.build();
@@ -452,27 +463,31 @@ public class MinsweeperGame extends JComponent {
             
             for (int y = 0; y < size.height(); y++)
                 for (int x = 0; x < size.width(); x++) {
-                    var point = new Point(x, y);
+                    var point = new MinsweeperGame.Point(x, y);
                     
                     var component = new CellView(point);
                     
                     Consumer<Object> click_action = (_) -> {
-                        if (flag_chord
-                                && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
-                                && neighbours(point)
-                                .map((e) -> state.board().get(e.x, e.y))
-                                .filter((cell) -> cell.type() instanceof CellType.Unknown)
-                                .count() == n) {
-                            neighbours(point)
-                                    .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
-                                    .forEach((e) -> state = minsweeper.setFlagged(e.x, e.y, true));
-                        }
-                        
-                        state = minsweeper.leftClick(point.x, point.y);
-                        if (state.status() == GameStatus.PLAYING)
-                            triggerPlaying();
-                        BoardView.this.revalidate();
-                        Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                        clicker.submit(() -> {
+                            clickdown = point;
+                            if (flag_chord
+                                    && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
+                                    && neighbours(point)
+                                    .map((e) -> state.board().get(e.x, e.y))
+                                    .filter((cell) -> cell.type() instanceof CellType.Unknown)
+                                    .count() == n) {
+                                neighbours(point)
+                                        .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
+                                        .forEach((e) -> state = minsweeper.setFlagged(e.x, e.y, true));
+                            }
+                            
+                            state = minsweeper.leftClick(point.x, point.y);
+                            if (state.status() == GameStatus.PLAYING)
+                                triggerPlaying();
+                            clickdown = null;
+                            BoardView.this.revalidate();
+                            Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                        });
                     };
                     
 //                    component.setModel(new DefaultButtonModel());
@@ -508,7 +523,7 @@ public class MinsweeperGame extends JComponent {
                                 for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
                                     for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
                                         if ((state.board().get(x3, y3).state() == CellState.UNKNOWN && state.status() == GameStatus.PLAYING) || !component.getModel().isArmed()) {
-                                            cells.get(new Point(x3, y3)).setDown(component.getModel().isArmed());
+                                            cells.get(new MinsweeperGame.Point(x3, y3)).setDown(component.getModel().isArmed());
                                         }
                                     }
                                 }
@@ -547,7 +562,7 @@ public class MinsweeperGame extends JComponent {
             for (int y = 0; y < size.height(); y++) {
                 var x_pos = 0f;
                 for (int x = 0; x < size.width(); x++) {
-                    cells.get(new Point(x, y))
+                    cells.get(new MinsweeperGame.Point(x, y))
                             .setPreferredSize(new Dimension(
                                     Math.round(x_pos + cell_size) - Math.round(x_pos),
                                     Math.round(y_pos + cell_size) - Math.round(y_pos)));
@@ -561,7 +576,7 @@ public class MinsweeperGame extends JComponent {
             var ypos = ((int) ((this.getHeight() - cell_size * size.height()) / 2));
             for (int y = 0; y < size.height(); y++) {
                 for (int x = 0; x < size.width(); x++) {
-                    var point = new Point(x, y);
+                    var point = new MinsweeperGame.Point(x, y);
                     var cell = cells.get(point);
                     var preferred_size = cell.getPreferredSize();
                     cell.setBounds(new Rectangle(xpos, ypos, preferred_size.width, preferred_size.height));
@@ -576,14 +591,14 @@ public class MinsweeperGame extends JComponent {
         }
         
         class CellView extends JButton {
-            private final Point point;
+            private final MinsweeperGame.Point point;
             
             private volatile boolean down;
             
             private volatile Color overlay;
             
             public boolean isDown() {
-                return down;
+                return down || point.equals(clickdown);
             }
             
             public CellView setDown(boolean down) {
@@ -597,7 +612,7 @@ public class MinsweeperGame extends JComponent {
                 return this;
             }
             
-            CellView(Point point) {
+            CellView(MinsweeperGame.Point point) {
                 this.point = point;
                 
                 this.setFocusable(false);
@@ -615,11 +630,11 @@ public class MinsweeperGame extends JComponent {
                         case CellType.Safe(var number) when number == 0 -> "celldown";
                         case CellType.Safe(var number) -> "cell" + number;
                         case CellType.Mine _ -> "blast";
-                        case CellType.Unknown _ -> (down) ? "celldown" : "cellup";
+                        case CellType.Unknown _ -> (isDown()) ? "celldown" : "cellup";
                     };
                     case UNKNOWN -> switch (cell.type()) {
                         case CellType.Mine _ -> "cellmine";
-                        default -> (down) ? "celldown" : "cellup";
+                        default -> (isDown()) ? "celldown" : "cellup";
                     };
                     case FLAGGED -> (cell.type() instanceof CellType.Safe) ? "falsemine" : "cellflag";
                 };

@@ -354,6 +354,7 @@ public class Main {
     
     private static void changeGame() {
         var pack = (frame.getWidth() <= frame.getPreferredSize().width && frame.getHeight() <= frame.getPreferredSize().height);
+        game.close();
         frame.remove(game);
         game = new MinsweeperGame(settings.size, solver_map.get(settings.solver), settings.texture);
         game.setAuto(settings.auto);
