@@ -1,3 +1,4 @@
+# v1.0.2
 name: "JPackage Build"
 run-name: "JPackage Build for ${{ github.event.release.tag_name }}"
 
