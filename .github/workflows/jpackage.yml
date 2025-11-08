@@ -233,7 +233,7 @@ jobs:
           token: "${{ secrets.TOKEN }}"
   build_linux_arm64:
     name: "JPackage Build for Linux arm64"
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-24.04-arm"
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v5"
