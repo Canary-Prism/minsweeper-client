@@ -63,7 +63,7 @@ jobs:
           token: "${{ secrets.TOKEN }}"
   build_mac_x86_64:
     name: "JPackage Build for Mac x86_64"
-    runs-on: "macos-13"
+    runs-on: "macos-15-intel"
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v5"
