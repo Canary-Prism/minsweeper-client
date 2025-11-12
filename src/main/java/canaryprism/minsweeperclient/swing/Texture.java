@@ -18,7 +18,8 @@ package canaryprism.minsweeperclient.swing;
 
 public enum Texture {
     LIGHT("Light", "light"),
-    DARK("Dark", "dark");
+    DARK("Dark", "dark"),
+    GAY("Gay", "gay");
     
     
     Texture(String readable_name, String asset_path_name) {
