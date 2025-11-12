@@ -196,6 +196,16 @@ public class Main {
             changeGame();
         });
         
+       
+        var evil_size = size_menu.add("Evil");
+        evil_size.setMnemonic(KeyEvent.VK_V);
+        evil_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, modifier_key));
+        evil_size.addActionListener((_) -> {
+            final int evil_width = 30, evil_height = 20, evil_mines = 130;
+            settings.size = new BoardSize(evil_width, evil_height, evil_mines);
+            changeGame();
+        });
+        
         var custom_size = size_menu.add("Custom");
         custom_size.setMnemonic(KeyEvent.VK_C);
         custom_size.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, modifier_key));
