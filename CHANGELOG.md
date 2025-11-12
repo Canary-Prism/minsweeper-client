@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.0
+- added gay texture
+- added variable gui scale
+- added preset evil board size (30x20:130)
+
 ## 1.10.0
 - upgraded minsweeper-java version to 5.1.1
 - made revealing run on its own thread so it can't freeze the app
