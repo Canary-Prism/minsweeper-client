@@ -777,7 +777,9 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         
         class DigitView extends JComponent {
             
-            private Image image;
+//            private Image image;
+            
+            private char value;
             
             DigitView() {
                 this.setPreferredSize(new Dimension(DIGIT_WIDTH, DIGIT_HEIGHT));
@@ -785,7 +787,8 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             }
             
             public DigitView setValue(char value) {
-                this.image = getAsset("counter/counter" + value);
+                this.value = value;
+//                this.image = getAsset("counter/counter" + value);
                 repaint();
                 return this;
             }
@@ -793,7 +796,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                g.drawImage(image, 0, 0, DIGIT_WIDTH, DIGIT_HEIGHT, null);
+                g.drawImage(getAsset("counter/counter" + value), 0, 0, DIGIT_WIDTH, DIGIT_HEIGHT, null);
             }
         }
     }
