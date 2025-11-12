@@ -66,6 +66,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     private boolean hover_chord = false;
     
     private volatile Texture theme;
+    private volatile double gui_scale = 1;
     
     private static final Map<String, BufferedImage> image_map = Collections.synchronizedMap(new HashMap<>());
     
@@ -267,6 +268,12 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         return this;
     }
     
+    public MinsweeperGame setGuiScale(double gui_scale) {
+        this.gui_scale = gui_scale;
+        revalidate();
+        return this;
+    }
+    
     private volatile boolean playing;
     private final AtomicReference<ScheduledFuture<?>> play_timer = new AtomicReference<>();
     private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().factory());
@@ -415,8 +422,8 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     
     @Override
     public void doLayout() {
+//        board.prevalidate();
         super.doLayout();
-        
         
         if (state.status() == GameStatus.WON)
             remaining_mines_counter.setValue(0);
@@ -554,6 +561,19 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             this.setPreferredSize(new Dimension(CELL_SIZE * size.width(), CELL_SIZE * size.height()));
 //            this.add(grid);
         }
+//
+//        private volatile boolean prevalidated = false;
+//        public void prevalidate() {
+//            System.out.println("prevalidate " + prevalidated);
+//            if (prevalidated) {
+//                prevalidated = false;
+//                return;
+//            }
+//            prevalidated = true;
+//            this.setPreferredSize(new Dimension());
+//            SwingUtilities.invokeLater(() -> MinsweeperGame.this.revalidate());
+//            ;
+//        }
         
         @Override
         public void doLayout() {
@@ -671,24 +691,28 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     
     class BorderView extends JComponent {
         enum Type {
-            BOTTOM_LEFT("bottomleft"),
-            BOTTOM_RIGHT("bottomright"),
-            COUNTER_LEFT("counterleft"),
-            COUNTER_TOP("countertop"),
-            COUNTER_BOTTOM("counterbottom"),
-            COUNTER_RIGHT("counterright"),
-            LEFT_RIGHT("leftright"),
-            MIDDLE_LEFT("middleleft"),
-            MIDDLE_RIGHT("middleright"),
-            TOP_BOTTOM("topbottom"),
-            TOP_LEFT("topleft"),
-            TOP_RIGHT("topright"),
+            BOTTOM_LEFT("bottomleft", false, false),
+            BOTTOM_RIGHT("bottomright", false, false),
+            COUNTER_LEFT("counterleft", false, true),
+            COUNTER_TOP("countertop", true, false),
+            COUNTER_BOTTOM("counterbottom", true, false),
+            COUNTER_RIGHT("counterright", false, true),
+            LEFT_RIGHT("leftright", false, true),
+            MIDDLE_LEFT("middleleft", false, false),
+            MIDDLE_RIGHT("middleright", false, false),
+            TOP_BOTTOM("topbottom", true, false),
+            TOP_LEFT("topleft", false, false),
+            TOP_RIGHT("topright", false, false),
             ;
             
             final String asset_name;
+            final boolean horizontal_stretch;
+            final boolean vertical_stretch;
             
-            Type(String asset_name) {
+            Type(String asset_name, boolean horizontal_stretch, boolean vertical_stretch) {
                 this.asset_name = asset_name;
+                this.horizontal_stretch = horizontal_stretch;
+                this.vertical_stretch = vertical_stretch;
             }
         }
         
@@ -697,7 +721,10 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             this.asset_path = "border/" + type.asset_name;
             
             var image = getAsset(asset_path);
-            this.setPreferredSize(new Dimension(image.getWidth() / 5, image.getHeight() / 5));
+            this.setPreferredSize(new Dimension(
+                    (type.horizontal_stretch) ? 0 : image.getWidth() / 5,
+                    (type.vertical_stretch) ? 0 : image.getHeight() / 5
+            ));
             this.setMinimumSize(this.getPreferredSize());
         }
         
@@ -782,8 +809,29 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             private char value;
             
             DigitView() {
-                this.setPreferredSize(new Dimension(DIGIT_WIDTH, DIGIT_HEIGHT));
-                this.setMinimumSize(this.getPreferredSize());
+
+            }
+            
+//            @Override
+//            public void doLayout() {
+//                this.setPreferredSize(new Dimension((int) (DIGIT_WIDTH * gui_scale), (int) (DIGIT_HEIGHT * gui_scale)));
+//                this.setMinimumSize(this.getPreferredSize());
+//                super.doLayout();
+//            }
+            
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension((int) (DIGIT_WIDTH * gui_scale), (int) (DIGIT_HEIGHT * gui_scale));
+            }
+            
+            @Override
+            public Dimension getMinimumSize() {
+                return getPreferredSize();
+            }
+            
+            @Override
+            public Dimension getMaximumSize() {
+                return getPreferredSize();
             }
             
             public DigitView setValue(char value) {
@@ -796,7 +844,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                g.drawImage(getAsset("counter/counter" + value), 0, 0, DIGIT_WIDTH, DIGIT_HEIGHT, null);
+                g.drawImage(getAsset("counter/counter" + value), 0, 0, (int) (DIGIT_WIDTH * gui_scale), (int) (DIGIT_HEIGHT * gui_scale), null);
             }
         }
     }
@@ -809,8 +857,23 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             
             this.setFocusable(true);
             this.setBorderPainted(false);
-            this.setPreferredSize(new Dimension(SIZE, SIZE));
-            this.setMinimumSize(this.getPreferredSize());
+        }
+        
+//        @Override
+//        public void doLayout() {
+//            this.setPreferredSize();
+//            this.setMinimumSize(this.getPreferredSize());
+//            super.doLayout();
+//        }
+        
+        @Override
+        public Dimension getPreferredSize() {
+            return new Dimension((int) (SIZE * gui_scale), (int) (SIZE * gui_scale));
+        }
+        
+        @Override
+        public Dimension getMinimumSize() {
+            return getPreferredSize();
         }
         
         @Override

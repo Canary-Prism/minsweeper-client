@@ -68,6 +68,7 @@ public class Main {
         @SuppressWarnings("unchecked")
         public volatile Class<? extends LookAndFeel> laf = (Class<? extends LookAndFeel>) Class.forName(UIManager.getSystemLookAndFeelClassName());
         public volatile Optional<Dimension> frame_size;
+        public volatile double gui_scale = 1;
         
         private Settings() throws ClassNotFoundException {
         }
@@ -205,6 +206,16 @@ public class Main {
         
         
         menu_bar.add(size_menu);
+        
+        var settings_menu = new JMenu("Settings");
+        var gui_scale = settings_menu.add("GUI Scale");
+        gui_scale.addActionListener((_) -> {
+            var scale = promptGuiScale();
+            settings.gui_scale = scale;
+            game.setGuiScale(scale);
+        });
+        
+        menu_bar.add(settings_menu);
         
         var theme_menu = new JMenu("Theme");
         theme_menu.setMnemonic(KeyEvent.VK_T);
@@ -360,6 +371,7 @@ public class Main {
         game.setAuto(settings.auto);
         game.setFlagChord(settings.flag_chord);
         game.setHoverChord(settings.hover_chord);
+        game.setGuiScale(settings.gui_scale);
         frame.add(game);
         frame.setMinimumSize(new Dimension());
         pack |= (frame.getWidth() <= frame.getPreferredSize().width && frame.getHeight() <= frame.getPreferredSize().height);
@@ -466,5 +478,19 @@ public class Main {
         SizeDialig.dialog.setVisible(true);
         
         return SizeDialig.future.join();
+    }
+    
+    private static final double GUI_SPINNER_MIN_SIZE = 0.1;
+    private static final double GUI_SPINNER_STEP_SIZE = 0.1;
+    
+    private static double promptGuiScale() {
+        var panel = new JPanel();
+        panel.add(new JLabel("GUI Scale: "));
+        var spinner = new JSpinner(new SpinnerNumberModel(settings.gui_scale, GUI_SPINNER_MIN_SIZE, Double.POSITIVE_INFINITY, GUI_SPINNER_STEP_SIZE));
+        panel.add(spinner);
+        
+        JOptionPane.showMessageDialog(frame, panel);
+        
+        return (double) spinner.getValue();
     }
 }
