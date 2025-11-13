@@ -1,4 +1,4 @@
-# v1.0.2
+# v1.0.3
 name: "JPackage Build"
 run-name: "JPackage Build for ${{ github.event.release.tag_name }}"
 
@@ -247,7 +247,7 @@ jobs:
         uses: "gradle/actions/setup-gradle@v4"
       - name: "Setup AppImageTool"
         run: |
-          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O ~/appimagetool
+          wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage" -O ~/appimagetool
            chmod +x ~/appimagetool
       - name: "Install FUSE"
         run: |
