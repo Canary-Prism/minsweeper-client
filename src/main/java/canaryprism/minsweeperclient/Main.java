@@ -226,9 +226,7 @@ public class Main {
         });
         
         var keybind = settings_menu.add("Keybinds");
-        keybind.addActionListener((_) -> {
-            promptKeybinds();
-        });
+        keybind.addActionListener((_) -> promptKeybinds());
         
         menu_bar.add(settings_menu);
         

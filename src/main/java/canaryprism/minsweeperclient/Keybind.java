@@ -32,6 +32,7 @@ public record Keybind(int modifiers) {
 //        };
 //    }
     
+    @SuppressWarnings("MagicConstant")
     public boolean pressed(MouseEvent e) {
         return e.getModifiersEx() == modifiers;
     }
