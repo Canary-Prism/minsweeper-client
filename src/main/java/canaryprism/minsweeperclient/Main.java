@@ -37,10 +37,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ItemEvent;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -69,6 +66,9 @@ public class Main {
         public volatile Class<? extends LookAndFeel> laf = (Class<? extends LookAndFeel>) Class.forName(UIManager.getSystemLookAndFeelClassName());
         public volatile Optional<Dimension> frame_size;
         public volatile double gui_scale = 1;
+        public volatile Keybind reveal_keybind = new Keybind(KeyEvent.BUTTON1_DOWN_MASK);
+        public volatile Keybind chord_keybind = new Keybind(KeyEvent.BUTTON1_DOWN_MASK);
+        public volatile Keybind flag_keybind = new Keybind(KeyEvent.BUTTON3_DOWN_MASK);
         
         private Settings() throws ClassNotFoundException {
         }
@@ -225,6 +225,11 @@ public class Main {
             game.setGuiScale(scale);
         });
         
+        var keybind = settings_menu.add("Keybinds");
+        keybind.addActionListener((_) -> {
+            promptKeybinds();
+        });
+        
         menu_bar.add(settings_menu);
         
         var theme_menu = new JMenu("Theme");
@@ -373,6 +378,12 @@ public class Main {
         saveSettings(settings_path);
     }
     
+    private static void updateKeybinds() {
+        game.setRevealKeybind(settings.reveal_keybind);
+        game.setChordKeybind(settings.chord_keybind);
+        game.setFlagKeybind(settings.flag_keybind);
+    }
+    
     private static void changeGame() {
         var pack = (frame.getWidth() <= frame.getPreferredSize().width && frame.getHeight() <= frame.getPreferredSize().height);
         game.close();
@@ -382,6 +393,7 @@ public class Main {
         game.setFlagChord(settings.flag_chord);
         game.setHoverChord(settings.hover_chord);
         game.setGuiScale(settings.gui_scale);
+        updateKeybinds();
         frame.add(game);
         frame.setMinimumSize(new Dimension());
         pack |= (frame.getWidth() <= frame.getPreferredSize().width && frame.getHeight() <= frame.getPreferredSize().height);
@@ -502,5 +514,49 @@ public class Main {
         JOptionPane.showMessageDialog(frame, panel);
         
         return (double) spinner.getValue();
+    }
+    
+    private static Keybind keybindOf(MouseEvent e) {
+        return new Keybind(e.getModifiersEx());
+    }
+    
+    private static void promptKeybinds() {
+        var panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        
+        panel.add(new JLabel("Use a new keybind on the following buttons to modify the action's keybind"));
+        
+        var reveal_binding = new JButton("Reveal: " + settings.reveal_keybind);
+        reveal_binding.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                settings.reveal_keybind = keybindOf(e);
+                reveal_binding.setText("Reveal: " + settings.reveal_keybind);
+            }
+        });
+        panel.add(reveal_binding);
+        
+        var chord_binding = new JButton("Chord: " + settings.chord_keybind);
+        chord_binding.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                settings.chord_keybind = keybindOf(e);
+                chord_binding.setText("Chord: " + settings.chord_keybind);
+            }
+        });
+        panel.add(chord_binding);
+        
+        var flag_binding = new JButton("Flag: " + settings.flag_keybind);
+        flag_binding.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                settings.flag_keybind = keybindOf(e);
+                flag_binding.setText("Flag: " + settings.flag_keybind);
+            }
+        });
+        panel.add(flag_binding);
+        
+        JOptionPane.showMessageDialog(frame, panel, "Change Keybinds", JOptionPane.PLAIN_MESSAGE);
+        updateKeybinds();
     }
 }

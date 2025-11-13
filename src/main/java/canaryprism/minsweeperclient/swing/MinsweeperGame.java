@@ -21,6 +21,7 @@ import canaryprism.minsweeper.solver.Logic;
 import canaryprism.minsweeper.solver.Move;
 import canaryprism.minsweeper.solver.Reason;
 import canaryprism.minsweeper.solver.Solver;
+import canaryprism.minsweeperclient.Keybind;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
@@ -40,7 +41,6 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,6 +67,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     
     private volatile Texture theme;
     private volatile double gui_scale = 1;
+    private volatile Keybind reveal_keybind, chord_keybind, flag_keybind;
     
     private static final Map<String, BufferedImage> image_map = Collections.synchronizedMap(new HashMap<>());
     
@@ -274,6 +275,21 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         return this;
     }
     
+    public MinsweeperGame setRevealKeybind(Keybind reveal_keybind) {
+        this.reveal_keybind = reveal_keybind;
+        return this;
+    }
+    
+    public MinsweeperGame setChordKeybind(Keybind chord_keybind) {
+        this.chord_keybind = chord_keybind;
+        return this;
+    }
+    
+    public MinsweeperGame setFlagKeybind(Keybind flag_keybind) {
+        this.flag_keybind = flag_keybind;
+        return this;
+    }
+    
     private volatile boolean playing;
     private final AtomicReference<ScheduledFuture<?>> play_timer = new AtomicReference<>();
     private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().factory());
@@ -473,86 +489,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                     var point = new MinsweeperGame.Point(x, y);
                     
                     var component = new CellView(point);
-                    
-                    Consumer<Object> click_action = (_) -> {
-                        clicker.submit(() -> {
-                            clickdown = point;
-                            if (flag_chord
-                                    && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
-                                    && neighbours(point)
-                                    .map((e) -> state.board().get(e.x, e.y))
-                                    .filter((cell) -> cell.type() instanceof CellType.Unknown)
-                                    .count() == n) {
-                                neighbours(point)
-                                        .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
-                                        .forEach((e) -> state = minsweeper.setFlagged(e.x, e.y, true));
-                            }
-                            
-                            state = minsweeper.leftClick(point.x, point.y);
-                            if (state.status() == GameStatus.PLAYING)
-                                triggerPlaying();
-                            clickdown = null;
-                            BoardView.this.revalidate();
-                            Thread.ofVirtual().start(MinsweeperGame.this::auto);
-                        });
-                    };
-                    
 //                    component.setModel(new DefaultButtonModel());
-
-                    component.addMouseListener(new MouseAdapter() {
-                        @Override
-                        public void mousePressed(MouseEvent e) {
-                            update();
-                        }
-                        @Override
-                        public void mouseReleased(MouseEvent e) {
-                            update();
-                        }
-                        
-                        @Override
-                        public void mouseEntered(MouseEvent e) {
-                            update();
-                            if (hover_chord && state.status() == GameStatus.PLAYING
-                                    && state.board().get(point.x, point.y).type() instanceof CellType.Safe) {
-                                click_action.accept(null);
-                            }
-                        }
-                        
-                        @Override
-                        public void mouseExited(MouseEvent e) {
-                            update();
-                        }
-                        
-                        void update() {
-                            if (state.board().get(point.x, point.y).state() == CellState.UNKNOWN && state.status() == GameStatus.PLAYING)
-                                cells.get(point).setDown(component.getModel().isArmed());
-                            if (state.board().get(point.x, point.y).state() == CellState.REVEALED) {
-                                for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
-                                    for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
-                                        if ((state.board().get(x3, y3).state() == CellState.UNKNOWN && state.status() == GameStatus.PLAYING) || !component.getModel().isArmed()) {
-                                            cells.get(new MinsweeperGame.Point(x3, y3)).setDown(component.getModel().isArmed());
-                                        }
-                                    }
-                                }
-                            }
-                            MinsweeperGame.this.repaint();
-                        }
-                    });
-                    
-                    component.addActionListener(click_action::accept);
-                    
-                    component.addMouseListener(new MouseAdapter() {
-
-                        @Override
-                        public void mousePressed(MouseEvent e) {
-                            
-                            if (SwingUtilities.isRightMouseButton(e)) {
-                                state = minsweeper.rightClick(point.x, point.y);
-                                BoardView.this.revalidate();
-                                Thread.ofVirtual().start(MinsweeperGame.this::auto);
-                            }
-                        }
-                    });
                     
                     this.add(component);
                     cells.put(point, component);
@@ -610,8 +547,14 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             super.doLayout();
         }
         
-        class CellView extends JButton {
+        class CellView extends JComponent {
             private final MinsweeperGame.Point point;
+            
+            private volatile boolean pressed, contained;
+            
+            public boolean isArmed() {
+                return pressed && contained;
+            }
             
             private volatile boolean down;
             
@@ -635,9 +578,99 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             CellView(MinsweeperGame.Point point) {
                 this.point = point;
                 
+                this.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        pressed = reveal_keybind.pressed(e) || chord_keybind.pressed(e);
+                        if (flag_keybind.matches(e)) {
+                            flag();
+                        }
+                        contained = true;
+                        update(e);
+                    }
+                    
+                    @Override
+                    public void mouseReleased(MouseEvent e) {
+                        pressed = reveal_keybind.pressed(e) || chord_keybind.pressed(e);
+                        if (contained) {
+                            if (reveal_keybind.matches(e)) {
+                                reveal();
+                            }
+                            if (chord_keybind.matches(e)) {
+                                chord();
+                            }
+                        }
+                        update(e);
+                    }
+                    
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        contained = true;
+                        update(e);
+                    }
+                    
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        contained = false;
+                        update(e);
+                    }
+                    
+                    void update(MouseEvent e) {
+                        if (state.board().get(point.x, point.y).state() == CellState.UNKNOWN
+                                && state.status() == GameStatus.PLAYING)
+                            cells.get(point).setDown(isArmed() && reveal_keybind.pressed(e));
+                        if (state.board().get(point.x, point.y).state() == CellState.REVEALED) {
+                            for (int y3 = max(0, point.y - 1); y3 <= min(size.height() - 1, point.y + 1); y3++) {
+                                for (int x3 = max(0, point.x - 1); x3 <= min(size.width() - 1, point.x + 1); x3++) {
+                                    if ((state.board().get(x3, y3).state() == CellState.UNKNOWN && state.status() == GameStatus.PLAYING) || !isArmed()) {
+                                        cells.get(new MinsweeperGame.Point(x3, y3)).setDown(isArmed() && chord_keybind.pressed(e));
+                                    }
+                                }
+                            }
+                        }
+                        MinsweeperGame.this.repaint();
+                    }
+                });
+                
                 this.setFocusable(false);
-                this.setBorderPainted(false);
+//                this.setBorderPainted(false);
                 this.setPreferredSize(new Dimension(CELL_SIZE, CELL_SIZE));
+            }
+            
+            private void reveal() {
+                clicker.submit(() -> {
+                    clickdown = point;
+                    
+                    state = minsweeper.reveal(point.x, point.y);
+                    if (state.status() == GameStatus.PLAYING)
+                        triggerPlaying();
+                    clickdown = null;
+                    BoardView.this.revalidate();
+                    Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                });
+            }
+            
+            private void chord() {
+                if (flag_chord
+                        && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
+                        && neighbours(point)
+                        .map((e) -> state.board().get(e.x, e.y))
+                        .filter((cell) -> cell.type() instanceof CellType.Unknown)
+                        .count() == n) {
+                    neighbours(point)
+                            .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
+                            .forEach((e) -> state = minsweeper.setFlagged(e.x, e.y, true));
+                }
+                
+                state = minsweeper.clearAround(point.x, point.y);
+                BoardView.this.revalidate();
+                Thread.ofVirtual().start(MinsweeperGame.this::auto);
+            }
+            
+            private void flag() {
+                state = minsweeper.toggleFlag(point.x, point.y);
+                BoardView.this.revalidate();
+                Thread.ofVirtual().start(MinsweeperGame.this::auto);
             }
             
             @Override
