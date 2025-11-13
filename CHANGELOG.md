@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.12.0
+- added custom keybinds
+
 ## 1.11.0
 - added gay texture
 - added variable gui scale
