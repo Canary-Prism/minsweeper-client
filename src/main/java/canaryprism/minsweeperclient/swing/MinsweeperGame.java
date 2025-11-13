@@ -606,6 +606,8 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                     @Override
                     public void mouseEntered(MouseEvent e) {
                         contained = true;
+                        if (hover_chord && state.board().get(point.x, point.y).type() instanceof CellType.Safe(int n) && n > 0)
+                            chord();
                         update(e);
                     }
                     
