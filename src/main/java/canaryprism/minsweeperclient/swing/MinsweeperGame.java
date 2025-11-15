@@ -100,6 +100,10 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         this.size = size;
         this.solver = solver;
         this.minsweeper = new canaryprism.minsweeper.MinsweeperGame(size, this::endPlaying, this::endPlaying);
+        
+        this.state = minsweeper.start(solver);
+        initClicker();
+        
         this.theme = theme;
         
         {
@@ -231,8 +235,6 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         
         c.gridy++;
         
-        this.state = minsweeper.start(solver);
-        
         c.gridy++;
         c.anchor = GridBagConstraints.CENTER;
         c.insets = new Insets(0, 0, 0, 0);
@@ -292,7 +294,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     
     private volatile boolean playing;
     private final AtomicReference<ScheduledFuture<?>> play_timer = new AtomicReference<>();
-    private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().factory());
+    private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().name("minsweeper-client timer thread ", 0).daemon().factory());
     
     private void triggerPlaying() {
         if (!playing) {
@@ -323,13 +325,17 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         }
     }
     
-    private volatile ExecutorService clicker = Executors.newSingleThreadExecutor(Thread.ofPlatform().daemon().factory());
+    private volatile ExecutorService clicker;
+    
+    private void initClicker() {
+        this.clicker = Executors.newSingleThreadExecutor(Thread.ofPlatform().name("minsweer-client clicker thread ", 0).daemon().factory());
+    }
     
     private void start() {
         endPlaying();
         time_counter.setValue(0);
         clicker.shutdownNow();
-        clicker = Executors.newSingleThreadExecutor();
+        initClicker();
         board.cells.forEach((_, e) -> e.clicking = false);
         state = minsweeper.start(solver);
         this.revalidate();
