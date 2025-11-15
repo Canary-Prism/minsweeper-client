@@ -653,26 +653,30 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
             }
             
             private void chord() {
-                if (flag_chord
-                        && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
-                        && neighbours(point)
-                        .map((e) -> state.board().get(e.x, e.y))
-                        .filter((cell) -> cell.type() instanceof CellType.Unknown)
-                        .count() == n) {
-                    neighbours(point)
-                            .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
-                            .forEach((e) -> state = minsweeper.setFlagged(e.x, e.y, true));
-                }
-                
-                state = minsweeper.clearAround(point.x, point.y);
-                BoardView.this.revalidate();
-                Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                clicker.submit(() -> {
+                    if (flag_chord
+                            && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
+                            && neighbours(point)
+                            .map((e) -> state.board().get(e.x, e.y))
+                            .filter((cell) -> cell.type() instanceof CellType.Unknown)
+                            .count() == n) {
+                        neighbours(point)
+                                .filter((e) -> state.board().get(e.x, e.y).type() instanceof CellType.Unknown)
+                                .forEach((e) -> state = minsweeper.setFlagged(e.x, e.y, true));
+                    }
+                    
+                    state = minsweeper.clearAround(point.x, point.y);
+                    BoardView.this.revalidate();
+                    Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                });
             }
             
             private void flag() {
-                state = minsweeper.toggleFlag(point.x, point.y);
-                BoardView.this.revalidate();
-                Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                clicker.submit(() -> {
+                    state = minsweeper.toggleFlag(point.x, point.y);
+                    BoardView.this.revalidate();
+                    Thread.ofVirtual().start(MinsweeperGame.this::auto);
+                });
             }
             
             @Override
