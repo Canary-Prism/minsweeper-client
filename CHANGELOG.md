@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.12.2
+- would you believe there were more visual bugs to fix?
+- would you believe the thread leak was in fact not fixed?
+
 ## v1.12.1
 - "fixed" concurrency issues by moving all actions to the clicker thread (wow what a great and totally not just lazy solution)
 - fixed clicker thread (wait for it) leaking!! (ofc it does) (you're so good at coding mia)
