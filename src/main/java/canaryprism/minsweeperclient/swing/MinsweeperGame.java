@@ -323,7 +323,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         }
     }
     
-    private volatile ExecutorService clicker = Executors.newSingleThreadExecutor();
+    private volatile ExecutorService clicker = Executors.newSingleThreadExecutor(Thread.ofPlatform().daemon().factory());
     private volatile Point clickdown;
     
     private void start() {
