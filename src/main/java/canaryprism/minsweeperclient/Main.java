@@ -64,7 +64,7 @@ public class Main {
         public volatile Texture texture = Texture.LIGHT;
         @SuppressWarnings("unchecked")
         public volatile Class<? extends LookAndFeel> laf = (Class<? extends LookAndFeel>) Class.forName(UIManager.getSystemLookAndFeelClassName());
-        public volatile Optional<Dimension> frame_size;
+        public volatile Optional<Dimension> frame_size = Optional.empty();
         public volatile double gui_scale = 1;
         public volatile Keybind reveal_keybind = new Keybind(KeyEvent.BUTTON1_DOWN_MASK);
         public volatile Keybind chord_keybind = new Keybind(KeyEvent.BUTTON1_DOWN_MASK);
