@@ -2,6 +2,7 @@
 
 ## v1.12.3
 - fixed app crashing when settings file is not found
+- upgraded minsweeper-java version to 5.1.2
 
 ## v1.12.2
 - would you believe there were more visual bugs to fix?
