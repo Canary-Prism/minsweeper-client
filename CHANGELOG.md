@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.12.3
+- fixed app crashing when settings file is not found
+
 ## v1.12.2
 - would you believe there were more visual bugs to fix?
 - would you believe the thread leak was in fact not fixed?
