@@ -1,8 +1,13 @@
 # Changelog
 
+## v1.13.0
+- upgraded minsweeper-java version to 5.2.0
+- this comes with an improvement to MiaSolver :D
+- made auto mode show hint highlight of the move it's going to perform before it does it
+- slowed auto mode down so u could see it hehe :3
+
 ## v1.12.3
 - fixed app crashing when settings file is not found
-- upgraded minsweeper-java version to 5.1.2
 
 ## v1.12.2
 - would you believe there were more visual bugs to fix?
