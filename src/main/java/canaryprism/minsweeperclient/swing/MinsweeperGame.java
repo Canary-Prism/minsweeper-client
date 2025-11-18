@@ -691,7 +691,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                         && state.board().get(point.x, point.y).state() == CellState.UNKNOWN))
                     return;
                 this.clicking = true;
-                clicker.submit(() -> {
+                clicker.execute(() -> {
                     
                     state = minsweeper.reveal(point.x, point.y);
                     if (state.status() == GameStatus.PLAYING)
@@ -712,7 +712,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                         .collect(Collectors.toSet());
                 for (var e : neighbours)
                     e.clicking = true;
-                clicker.submit(() -> {
+                clicker.execute(() -> {
                     if (flag_chord
                             && state.board().get(point.x, point.y).type() instanceof CellType.Safe(var n)
                             && neighbours(point)
@@ -736,7 +736,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                 if (!(state.status() == GameStatus.PLAYING
                         && state.board().get(point.x, point.y).type() instanceof CellType.Unknown))
                     return;
-                clicker.submit(() -> {
+                clicker.execute(() -> {
                     state = minsweeper.toggleFlag(point.x, point.y);
                     BoardView.this.revalidate();
                     Thread.ofVirtual().start(MinsweeperGame.this::auto);
