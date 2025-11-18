@@ -341,6 +341,44 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         this.revalidate();
     }
     
+    @SuppressWarnings("unused")
+    private GameState preset1() {
+        var board = new Board(new BoardSize(4, 3, 4));
+        board.clear();
+        
+        board.add(parse('2', '1', '1', 'O'));
+        board.add(parse('!', '3', '2', 'O'));
+        board.add(parse('O', 'O', 'O', 'O'));
+        
+        return new GameState(GameStatus.PLAYING, board, 4);
+    }
+    
+    @SuppressWarnings("unused")
+    private GameState preset2() {
+        var board = new Board(new BoardSize(3, 3, 2));
+        board.clear();
+        
+        board.add(parse(' ', '1', 'O'));
+        board.add(parse('1', '2', 'O'));
+        board.add(parse('O', 'O', 'O'));
+        
+        return new GameState(GameStatus.PLAYING, board, 2);
+    }
+    
+    private static ArrayList<Cell> parse(char... chars) {
+        var list = new ArrayList<Cell>();
+        for (var e : chars) {
+            if ('1' <= e && e <= '8')
+                list.add(new Cell(new CellType.Safe(e - '0'), CellState.REVEALED));
+            switch (e) {
+                case '!' -> list.add(new Cell(CellType.UNKNOWN, CellState.FLAGGED));
+                case ' ' -> list.add(new Cell(CellType.Safe.EMPTY, CellState.REVEALED));
+                case 'O' -> list.add(new Cell(CellType.UNKNOWN, CellState.UNKNOWN));
+            }
+        }
+        return list;
+    }
+    
     public void setAuto(boolean auto) {
         this.auto = auto;
     }
