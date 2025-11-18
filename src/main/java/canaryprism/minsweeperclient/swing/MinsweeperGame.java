@@ -400,26 +400,16 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         if (hinting)
             return;
         hinting = true;
-        if (solver.solve(state) instanceof Move(var clicks, var opt_reason)) {
+        if (solver.solve(state) instanceof Move move) {
 //            var target = board.cells.get(new BoardView.Point(x, y));
-            var related = opt_reason
-                    .map(Reason::related)
-                    .orElse(Set.of())
-                    .stream()
-                    .map((e) -> new Point(e.x(), e.y()))
-                    .map(board.cells::get)
-                    .collect(Collectors.toSet());
-            var logic = opt_reason
+
+            highlight(move);
+            
+            var logic = move.reason()
                     .map(Reason::logic)
                     .map(Logic::getDescription)
                     .orElse("no logic provided");
-            
-            related.forEach((e) -> e.setOverlay(new Color(0x8000FFFF, true)));
-            clicks.forEach((e) ->
-                    board.cells.get(
-                            new Point(e.point().x(), e.point().y()))
-                            .setOverlay((e.action() == Move.Action.LEFT) ?
-                                    new Color(0x8000FF00, true) : new Color(0x80FF0000, true)));
+
 //            target.setOverlay((action == Move.Click.LEFT) ? new Color(0x8000FF00, true) : new Color(0x80FF0000, true));
 
 //                this.add(hint_component, hint_constraints);
@@ -439,16 +429,38 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
 
 //                this.remove(hint_component);
             
-            related.forEach((e) -> e.setOverlay(null));
-            clicks.forEach((e) ->
-                    board.cells.get(
-                                    new Point(e.point().x(), e.point().y()))
-                            .setOverlay(null));
+            clearHighlight();
 //            target.setOverlay(null);
             revalidate();
             
         }
         hinting = false;
+    }
+    private static final Color RELATED_OVERLAY = new Color(0x8000FFFF, true);
+    private static final Color REVEAL_OVERLAY = new Color(0x8000FF00, true);
+    private static final Color FLAG_OVERLAY = new Color(0x80FF0000, true);
+    
+    private void highlight(Move move) {
+        var clicks = move.clicks();
+        var opt_reason = move.reason();
+        var related = opt_reason
+                .map(Reason::related)
+                .orElse(Set.of())
+                .stream()
+                .map((e) -> new Point(e.x(), e.y()))
+                .map(board.cells::get)
+                .collect(Collectors.toSet());
+        
+        related.forEach((e) -> e.setOverlay(RELATED_OVERLAY));
+        clicks.forEach((e) ->
+                board.cells.get(
+                                new Point(e.point().x(), e.point().y()))
+                        .setOverlay((e.action() == Move.Action.LEFT) ?
+                                REVEAL_OVERLAY : FLAG_OVERLAY));
+    }
+    
+    private void clearHighlight() {
+        board.cells.forEach((_, cell) -> cell.setOverlay(null));
     }
     
     private final ForkJoinPool pool = new ForkJoinPool(1);
@@ -461,17 +473,20 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                 var move = solver.solve(state);
                 synchronized (this) {
                     if (move instanceof Move(var clicks, var _)) {
+                        highlight(move);
+                        try {
+                            final var auto_delay = 500;
+                            //noinspection BusyWait
+                            Thread.sleep(auto_delay);
+                        } catch (InterruptedException _) {
+                        }
                         for (var click : clicks)
                             switch (click.action()) {
                                 case LEFT -> this.state = minsweeper.leftClick(click.point().x(), click.point().y());
                                 case RIGHT -> this.state = minsweeper.rightClick(click.point().x(), click.point().y());
                             }
                         revalidate();
-                        try {
-                            //noinspection BusyWait
-                            Thread.sleep(10);
-                        } catch (InterruptedException _) {
-                        }
+                        clearHighlight();
                     } else break;
                 }
             }
