@@ -468,26 +468,36 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         if (!auto) {
             return;
         }
-        pool.submit(ForkJoinTask.adapt(() -> {
-            while (state.status() == GameStatus.PLAYING) {
-                var move = solver.solve(state);
-                synchronized (this) {
-                    if (move instanceof Move(var clicks, var _)) {
-                        highlight(move);
-                        try {
-                            final var auto_delay = 500;
-                            //noinspection BusyWait
-                            Thread.sleep(auto_delay);
-                        } catch (InterruptedException _) {
-                        }
-                        for (var click : clicks)
-                            switch (click.action()) {
-                                case LEFT -> this.state = minsweeper.leftClick(click.point().x(), click.point().y());
-                                case RIGHT -> this.state = minsweeper.rightClick(click.point().x(), click.point().y());
-                            }
-                        revalidate();
-                        clearHighlight();
-                    } else break;
+        
+        pool.execute(ForkJoinTask.adapt(() -> {
+            if (state.status() != GameStatus.PLAYING)
+                return;
+            
+            var move = solver.solve(state);
+            synchronized (this) {
+                if (move instanceof Move(var clicks, var _)) {
+                    highlight(move);
+                    try {
+                        final var auto_delay = 500;
+                        Thread.sleep(auto_delay);
+                    } catch (InterruptedException _) {
+                    }
+                    
+                    try {
+                        clicker.submit(() -> {
+                            for (var click : clicks)
+                                switch (click.action()) {
+                                    case LEFT -> this.state = minsweeper.leftClick(click.point().x(), click.point().y());
+                                    case RIGHT -> this.state = minsweeper.rightClick(click.point().x(), click.point().y());
+                                }
+                        }).get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                    
+                    revalidate();
+                    clearHighlight();
+                    auto();
                 }
             }
         }));
