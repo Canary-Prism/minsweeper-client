@@ -22,10 +22,13 @@ import canaryprism.minsweeper.solver.Move;
 import canaryprism.minsweeper.solver.Reason;
 import canaryprism.minsweeper.solver.Solver;
 import canaryprism.minsweeperclient.Keybind;
+import canaryprism.minsweeperclient.Main;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.transcoder.image.ImageTranscoder;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import javax.swing.*;
 import javax.swing.event.AncestorEvent;
@@ -37,9 +40,11 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,6 +53,42 @@ import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 public class MinsweeperGame extends JComponent implements AutoCloseable {
+    
+    public static class Highscores {
+        public volatile Optional<Double> bbbv_per_second = Optional.empty();
+        public volatile Optional<Double> efficiency = Optional.empty();
+    }
+    private static Highscores highscores;
+    private static final Path highscores_path;
+    
+    static {
+        var save_path = Path.of(Main.DIRS.dataLocalDir);
+        highscores_path = save_path.resolve("highscores.json");
+        
+        try {
+            loadHighscores(highscores_path);
+        } catch (JacksonException e) {
+            // i'll fix it later :p
+            //noinspection CallToPrintStackTrace
+            e.printStackTrace();
+            highscores = new Highscores();
+        }
+    }
+    
+    private static void loadHighscores(Path path) {
+        highscores = JsonMapper.shared().readValue(path, Highscores.class);
+    }
+    
+    public static Highscores getHighscores() {
+        return highscores;
+    }
+    
+    public static void resetHighscores() {
+        highscores = new Highscores();
+    }
+    public static void saveHighscores() {
+        JsonMapper.shared().writeValue(highscores_path, highscores);
+    }
     
     private final BoardSize size;
     private final Solver solver;
@@ -66,6 +107,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     private boolean hover_chord = false;
     
     private volatile Texture theme;
+    private volatile boolean enable_stats;
     private volatile double gui_scale = 1;
     private volatile Keybind reveal_keybind, chord_keybind, flag_keybind;
     
@@ -271,6 +313,11 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         return this;
     }
     
+    public MinsweeperGame setEnableStats(boolean enable_stats) {
+        this.enable_stats = enable_stats;
+        return this;
+    }
+    
     public MinsweeperGame setGuiScale(double gui_scale) {
         this.gui_scale = gui_scale;
         revalidate();
@@ -318,12 +365,157 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     private void endPlaying() {
         if (playing) {
             playing = false;
+            
             if (play_timer.get() instanceof ScheduledFuture<?> timer) {
                 timer.cancel(true);
                 play_timer.set(null);
             }
+            if (enable_stats) {
+                clicker.execute(this::showStats);
+            }
         }
     }
+    
+    private void showStats() {
+        if (state.status() == GameStatus.PLAYING)
+            return;
+        if (state.status() == GameStatus.WON)
+            updateHighscores();
+        JOptionPane.showMessageDialog(this, """
+                            3bv: %s
+                            3bv/s: %.2f
+                            clicks: %s
+                            efficiency: %.0f%%
+                            """.formatted(get3bv(), get3bvps(), clicks.get(), getClickEfficiency() * 100),
+                "Stats", JOptionPane.PLAIN_MESSAGE);
+    }
+    
+    private void updateHighscores() {
+        var highscores = MinsweeperGame.highscores;
+        synchronized (highscores) {
+            highscores.bbbv_per_second = Optional.of(max(get3bvps(), highscores.bbbv_per_second.orElse(0d)));
+            highscores.efficiency = Optional.of(max(getClickEfficiency(), highscores.efficiency.orElse(0d)));
+        }
+        saveHighscores();
+    }
+    
+    private int get3bv() {
+        assert state.status() != GameStatus.PLAYING;
+        
+        var board = state.board();
+        
+        var clicks = 0;
+        var revealed = new HashSet<Point>();
+        
+        for (int y = 0; y < size.height(); y++) {
+            for (int x = 0; x < size.width(); x++) {
+                if (board.get(x, y).type() instanceof CellType.Safe(var number) && number == 0) {
+                    if (revealed.add(new Point(x, y)))
+                        clicks++;
+                    
+                    var flood = new HashSet<Point>();
+                    
+                    flood.add(new Point(x, y));
+                    
+                    while (!flood.isEmpty()) {
+                        
+                        var point = flood.iterator().next();
+                        flood.remove(point);
+                        var x2 = point.x;
+                        
+                        var y2 = point.y;
+                        
+                        for (int y3 = Math.max(0, y2 - 1); y3 <= Math.min(size.height() - 1, y2 + 1); y3++)
+                            for (int x3 = Math.max(0, x2 - 1); x3 <= Math.min(size.width() - 1, x2 + 1); x3++)
+                                if (board.get(x3, y3) instanceof Cell(var type, var _)
+                                        && type instanceof CellType.Safe(var n)
+                                        && !revealed.contains(new Point(x3, y3))) {
+                                    revealed.add(new Point(x3, y3));
+                                    if (n == 0) {
+//                                revealEmpty(x2, y2, board);
+                                        flood.add(new Point(x3, y3));
+                                    }
+                                }
+                    }
+                }
+            }
+        }
+        for (int y = 0; y < size.height(); y++) {
+            for (int x = 0; x < size.width(); x++) {
+                if (board.get(x, y).type() instanceof CellType.Safe) {
+                    if (revealed.add(new Point(x, y)))
+                        clicks++;
+                }
+            }
+        }
+        return clicks;
+    }
+    private int getClicked3bv() {
+        assert state.status() != GameStatus.PLAYING;
+        
+        var board = state.board();
+        
+        var clicks = 0;
+        var revealed = new HashSet<Point>();
+        
+        for (int y = 0; y < size.height(); y++) {
+            for (int x = 0; x < size.width(); x++) {
+                if (board.get(x, y) instanceof Cell(var type, var state)
+                        && type instanceof CellType.Safe(var number) && number == 0
+                        && state == CellState.REVEALED) {
+                    if (revealed.add(new Point(x, y)))
+                        clicks++;
+                    
+                    var flood = new HashSet<Point>();
+                    
+                    flood.add(new Point(x, y));
+                    
+                    while (!flood.isEmpty()) {
+                        
+                        var point = flood.iterator().next();
+                        flood.remove(point);
+                        var x2 = point.x;
+                        
+                        var y2 = point.y;
+                        
+                        for (int y3 = Math.max(0, y2 - 1); y3 <= Math.min(size.height() - 1, y2 + 1); y3++)
+                            for (int x3 = Math.max(0, x2 - 1); x3 <= Math.min(size.width() - 1, x2 + 1); x3++)
+                                if (board.get(x3, y3) instanceof Cell(var t, var s)
+                                        && t instanceof CellType.Safe(var n)
+                                        && s == CellState.REVEALED
+                                        && !revealed.contains(new Point(x3, y3))) {
+                                    revealed.add(new Point(x3, y3));
+                                    if (n == 0) {
+//                                revealEmpty(x2, y2, board);
+                                        flood.add(new Point(x3, y3));
+                                    }
+                                }
+                    }
+                }
+            }
+        }
+        for (int y = 0; y < size.height(); y++) {
+            for (int x = 0; x < size.width(); x++) {
+                if (board.get(x, y) instanceof Cell(var type, var state)
+                        && type instanceof CellType.Safe
+                        && state == CellState.REVEALED) {
+                    if (revealed.add(new Point(x, y)))
+                        clicks++;
+                }
+            }
+        }
+        return clicks;
+    }
+    
+    private double get3bvps() {
+        return (double) getClicked3bv() / time_counter.value;
+    }
+    
+    private double getClickEfficiency() {
+        return (double) getClicked3bv() / clicks.get();
+    }
+    
+    private final AtomicInteger clicks = new AtomicInteger(0);
     
     private volatile ExecutorService clicker;
     
@@ -334,6 +526,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     private void start() {
         endPlaying();
         time_counter.setValue(0);
+        this.clicks.set(0);
         clicker.shutdownNow();
         initClicker();
         board.cells.forEach((_, e) -> e.clicking = false);
@@ -485,11 +678,15 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                     
                     try {
                         clicker.submit(() -> {
-                            for (var click : clicks)
+                            for (var click : clicks) {
                                 switch (click.action()) {
-                                    case LEFT -> this.state = minsweeper.leftClick(click.point().x(), click.point().y());
-                                    case RIGHT -> this.state = minsweeper.rightClick(click.point().x(), click.point().y());
+                                    case LEFT ->
+                                            this.state = minsweeper.leftClick(click.point().x(), click.point().y());
+                                    case RIGHT ->
+                                            this.state = minsweeper.rightClick(click.point().x(), click.point().y());
                                 }
+                                this.clicks.incrementAndGet();
+                            }
                         }).get();
                     } catch (InterruptedException | ExecutionException e) {
                         throw new RuntimeException(e);
@@ -653,6 +850,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                     public void mousePressed(MouseEvent e) {
                         pressed = reveal_keybind.pressed(e) || chord_keybind.pressed(e);
                         if (flag_keybind.matches(e)) {
+                            clicks.incrementAndGet();
                             flag();
                         }
                         contained = true;
@@ -663,6 +861,8 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                     public void mouseReleased(MouseEvent e) {
                         pressed = reveal_keybind.pressed(e) || chord_keybind.pressed(e);
                         if (contained) {
+                            if (reveal_keybind.matches(e) || chord_keybind.matches(e))
+                                clicks.incrementAndGet();
                             if (reveal_keybind.matches(e)) {
                                 reveal();
                             }

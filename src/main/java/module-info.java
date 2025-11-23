@@ -13,4 +13,6 @@ module canaryprism.minsweeperclient {
     
     opens canaryprism.minsweeperclient to
             tools.jackson.databind;
+    opens canaryprism.minsweeperclient.swing to
+            tools.jackson.databind;
 }

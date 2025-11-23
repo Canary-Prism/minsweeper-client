@@ -47,7 +47,7 @@ import java.util.stream.Stream;
 
 public class Main {
     
-    private static final ProjectDirectories DIRS = ProjectDirectories.from("", "canaryprism", "minsweeper-client");
+    public static final ProjectDirectories DIRS = ProjectDirectories.from("", "canaryprism", "minsweeper-client");
     private static final ObjectMapper mapper = JsonMapper.shared();
     
     private static JFrame frame;
@@ -62,6 +62,7 @@ public class Main {
         public volatile BoardSize size = ConventionalSize.BEGINNER.size;
         public volatile Class<? extends Solver> solver = Solver.getDefault().getClass();
         public volatile Texture texture = Texture.LIGHT;
+        public volatile boolean enable_stats = false;
         @SuppressWarnings("unchecked")
         public volatile Class<? extends LookAndFeel> laf = (Class<? extends LookAndFeel>) Class.forName(UIManager.getSystemLookAndFeelClassName());
         public volatile Optional<Dimension> frame_size = Optional.empty();
@@ -230,6 +231,26 @@ public class Main {
         
         menu_bar.add(settings_menu);
         
+        var stats_menu = new JMenu("Stats");
+        
+        var enable_stats_checkbox = new JCheckBoxMenuItem("Enable Stats");
+        enable_stats_checkbox.setMnemonic(KeyEvent.VK_E);
+//        enable_stats.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, modifier_key));
+        enable_stats_checkbox.setSelected(settings.enable_stats);
+        enable_stats_checkbox.addItemListener((e) -> {
+            settings.enable_stats = (e.getStateChange() == ItemEvent.SELECTED);
+            game.setEnableStats(settings.enable_stats);
+        });
+        stats_menu.add(enable_stats_checkbox);
+        
+        var show_highscores = stats_menu.add("Show Highscores");
+        show_highscores.addActionListener((_) -> showHighscores());
+        
+        var reset_highscores = stats_menu.add("Reset Highscores");
+        reset_highscores.addActionListener((_) -> MinsweeperGame.resetHighscores());
+        
+        menu_bar.add(stats_menu);
+        
         var theme_menu = new JMenu("Theme");
         theme_menu.setMnemonic(KeyEvent.VK_T);
         var laf_menu = new JMenu("Look and Feel");
@@ -387,6 +408,7 @@ public class Main {
         game.close();
         frame.remove(game);
         game = new MinsweeperGame(settings.size, solver_map.get(settings.solver), settings.texture);
+        game.setEnableStats(settings.enable_stats);
         game.setAuto(settings.auto);
         game.setFlagChord(settings.flag_chord);
         game.setHoverChord(settings.hover_chord);
@@ -556,5 +578,21 @@ public class Main {
         
         JOptionPane.showMessageDialog(frame, panel, "Change Keybinds", JOptionPane.PLAIN_MESSAGE);
         updateKeybinds();
+    }
+    
+    private static void showHighscores() {
+        var highscores = MinsweeperGame.getHighscores();
+        var panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        
+        panel.add(new JLabel("3bv per second: " + highscores.bbbv_per_second.map(String::valueOf).orElse("none")));
+        panel.add(new JLabel("efficiency: " + highscores.efficiency.map(String::valueOf).orElse("none")));
+        
+        JOptionPane.showMessageDialog(frame, """
+                3bv/s: %s
+                efficiency: %s%%
+                """.formatted(highscores.bbbv_per_second.map("%.2f"::formatted).orElse("none"),
+                        highscores.efficiency.map((e) -> e * 100).map("%.0f"::formatted).orElse("none")),
+                "Highscores", JOptionPane.PLAIN_MESSAGE);
     }
 }
