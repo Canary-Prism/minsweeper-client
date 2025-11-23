@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.14.0
+- upgraded minsweeper-java version to 5.2.1
+- added stats and stuff like 3bv and whatever
+
 ## v1.13.0
 - upgraded minsweeper-java version to 5.2.0
 - this comes with an improvement to MiaSolver :D
