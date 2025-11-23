@@ -386,7 +386,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                             3bv/s: %.2f
                             clicks: %s
                             efficiency: %.0f%%
-                            """.formatted(get3bv(), get3bvps(), clicks.get(), getClickEfficiency() * 100),
+                            """.formatted(get3bv(), get3bvps(), click_count.get(), getClickEfficiency() * 100),
                 "Stats", JOptionPane.PLAIN_MESSAGE);
     }
     
@@ -460,9 +460,9 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         
         for (int y = 0; y < size.height(); y++) {
             for (int x = 0; x < size.width(); x++) {
-                if (board.get(x, y) instanceof Cell(var type, var state)
+                if (board.get(x, y) instanceof Cell(var type, var cell_state)
                         && type instanceof CellType.Safe(var number) && number == 0
-                        && state == CellState.REVEALED) {
+                        && cell_state == CellState.REVEALED) {
                     if (revealed.add(new Point(x, y)))
                         clicks++;
                     
@@ -496,9 +496,9 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         }
         for (int y = 0; y < size.height(); y++) {
             for (int x = 0; x < size.width(); x++) {
-                if (board.get(x, y) instanceof Cell(var type, var state)
+                if (board.get(x, y) instanceof Cell(var type, var cell_state)
                         && type instanceof CellType.Safe
-                        && state == CellState.REVEALED) {
+                        && cell_state == CellState.REVEALED) {
                     if (revealed.add(new Point(x, y)))
                         clicks++;
                 }
@@ -512,10 +512,10 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     }
     
     private double getClickEfficiency() {
-        return (double) getClicked3bv() / clicks.get();
+        return (double) getClicked3bv() / click_count.get();
     }
     
-    private final AtomicInteger clicks = new AtomicInteger(0);
+    private final AtomicInteger click_count = new AtomicInteger(0);
     
     private volatile ExecutorService clicker;
     
@@ -526,7 +526,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
     private void start() {
         endPlaying();
         time_counter.setValue(0);
-        this.clicks.set(0);
+        this.click_count.set(0);
         clicker.shutdownNow();
         initClicker();
         board.cells.forEach((_, e) -> e.clicking = false);
@@ -685,7 +685,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                                     case RIGHT ->
                                             this.state = minsweeper.rightClick(click.point().x(), click.point().y());
                                 }
-                                this.clicks.incrementAndGet();
+                                this.click_count.incrementAndGet();
                             }
                         }).get();
                     } catch (InterruptedException | ExecutionException e) {
@@ -850,7 +850,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                     public void mousePressed(MouseEvent e) {
                         pressed = reveal_keybind.pressed(e) || chord_keybind.pressed(e);
                         if (flag_keybind.matches(e)) {
-                            clicks.incrementAndGet();
+                            click_count.incrementAndGet();
                             flag();
                         }
                         contained = true;
@@ -862,7 +862,7 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
                         pressed = reveal_keybind.pressed(e) || chord_keybind.pressed(e);
                         if (contained) {
                             if (reveal_keybind.matches(e) || chord_keybind.matches(e))
-                                clicks.incrementAndGet();
+                                click_count.incrementAndGet();
                             if (reveal_keybind.matches(e)) {
                                 reveal();
                             }
