@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.15.0
+- upgraded minsweeper-java version to 5.3.0
+- this comes with an upgrade to all the solvers to match the logic used by MiaSolver
+- and the two guessing fake solvers SafeStart and ZeroStart
+
 ## v1.14.0
 - upgraded minsweeper-java version to 5.2.1
 - added stats and stuff like 3bv and whatever

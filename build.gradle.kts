@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "canaryprism"
-version = "1.14.0"
+version = "1.15.0"
 
 application {
     mainClass = "canaryprism.minsweeperclient.Main"
