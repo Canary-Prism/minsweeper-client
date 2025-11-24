@@ -558,6 +558,24 @@ public class MinsweeperGame extends JComponent implements AutoCloseable {
         return new GameState(GameStatus.PLAYING, board, 2);
     }
     
+    @SuppressWarnings("unused")
+    private GameState preset3() {
+        var board = new Board(new BoardSize(9, 5, 10));
+        board.clear();
+        
+        board.add(parse("OOOOOO!OO"));
+        board.add(parse("OOOO33221"));
+        board.add(parse("O122O1111"));
+        board.add(parse("OO1OO22!1"));
+        board.add(parse("OO112!211"));
+        
+        return new GameState(GameStatus.PLAYING, board, 10);
+    }
+    
+    private static ArrayList<Cell> parse(String str) {
+        return parse(str.toCharArray());
+    }
+    
     private static ArrayList<Cell> parse(char... chars) {
         var list = new ArrayList<Cell>();
         for (var e : chars) {
